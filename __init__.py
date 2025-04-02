@@ -1,4 +1,7 @@
-from .nodes import KLingAIAPIKey, KLingAIText2Video, KLingAIQueryStatus, KLingAIVideoDownloader
+from .nodes.api_key import KLingAIAPIKey
+from .nodes.text2video import KLingAIText2Video
+from .nodes.query_status import KLingAIQueryStatus
+from .nodes.video_downloader import KLingAIVideoDownloader
 
 NODE_CLASS_MAPPINGS = {
     "JM-KLingAI-API/api-key": KLingAIAPIKey,
