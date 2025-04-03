@@ -78,7 +78,7 @@ class KLingAIQueryStatus:
         if initial_delay_seconds > 0:
             print(f"等待 {initial_delay_seconds} 秒后开始查询任务状态...")
             if self.stop_thread.wait(initial_delay_seconds):
-                return None
+                return "查询被中断"
 
         print("开始查询任务状态...")
 
@@ -159,11 +159,12 @@ class KLingAIQueryStatus:
                             if videos and videos[0].get("url"):
                                 return videos[0].get("url")
                             print("任务成功但未返回视频URL")
-                            return None
+                            return "任务成功但未返回视频URL"
                         # 任务失败
                         elif status == "failed":
-                            print(f"任务失败: {data.get('task_status_msg', '未知错误')}")
-                            return None
+                            failed_msg = f"任务失败: {data.get('task_status_msg', '未知错误')}"
+                            print(failed_msg)
+                            return failed_msg
                         # 任务仍在处理中，中断当前端点循环，等待下次查询
                         break
                     else:
@@ -175,16 +176,17 @@ class KLingAIQueryStatus:
             # 如果尝试了所有端点但都未成功
             if not success and not valid_endpoint:
                 if not current_endpoints:
-                    print("没有可用的端点进行查询")
-                    return None
+                    error_msg = "没有可用的端点进行查询"
+                    print(error_msg)
+                    return error_msg
                 print("所有端点查询失败，稍后将重试...")
             
             # 按照配置的时间间隔等待再次查询
             print(f"等待 {poll_interval_seconds} 秒后再次查询...")
             if self.stop_thread.wait(poll_interval_seconds):
-                return None
+                return "查询被中断"
 
-        return None
+        return "查询被停止"
 
     def query_task_status(self, api_token, task_id, external_task_id="", task_type="auto", initial_delay_seconds=10, poll_interval_seconds=10):
         """
@@ -223,20 +225,24 @@ class KLingAIQueryStatus:
 
             # 获取结果
             video_url = self.current_thread.result
+            if video_url is None:
+                video_url = "查询未返回结果"
 
-            if video_url:
+            if video_url and "http" in video_url:
                 print(f"任务成功完成。视频URL: {video_url}")
-                return (video_url,)
             else:
-                print("任务完成但没有可用的视频URL")
-                return (None,)
+                print(f"查询结果: {video_url}")
+                
+            return (video_url,)
 
         except ValueError as ve:
-            print(f"参数验证错误: {str(ve)}")
-            return (None,)
+            error_msg = f"参数验证错误: {str(ve)}"
+            print(error_msg)
+            return (error_msg,)
         except Exception as e:
-            print(f"查询任务状态错误: {str(e)}")
-            return (None,)
+            error_msg = f"查询任务状态错误: {str(e)}"
+            print(error_msg)
+            return (error_msg,)
 
     def __del__(self):
         """

@@ -4,6 +4,7 @@ import glob
 import requests
 from pathlib import Path
 import folder_paths
+import time
 
 
 class KLingAIVideoDownloader:
@@ -40,6 +41,7 @@ class KLingAIVideoDownloader:
     RETURN_NAMES = ("video_path",)
     FUNCTION = "download_video"
     CATEGORY = "JM-KLingAI-API"
+    OUTPUT_NODE = True  # 标记为可作为终端节点的节点
 
     def get_next_sequence_number(self, directory, filename_prefix):
         """
@@ -73,7 +75,7 @@ class KLingAIVideoDownloader:
         try:
             # Validate inputs
             if not video_url:
-                raise ValueError("Video URL is required")
+                raise ValueError("视频URL不能为空")
             if not filename_prefix:
                 filename_prefix = "KLingAI"
 
@@ -89,7 +91,7 @@ class KLingAIVideoDownloader:
             filepath = os.path.join(output_dir, filename)
 
             # Download video
-            print(f"Downloading video from {video_url}")
+            print(f"正在从 {video_url} 下载视频")
             response = requests.get(video_url, stream=True)
             response.raise_for_status()
 
@@ -99,15 +101,23 @@ class KLingAIVideoDownloader:
                     if chunk:
                         f.write(chunk)
 
-            print(f"Video successfully downloaded to: {filepath}")
+            print(f"视频成功下载到: {filepath}")
             return (filepath,)
 
         except ValueError as ve:
-            print(f"Validation Error: {str(ve)}")
-            return (None,)
+            error_msg = f"参数错误: {str(ve)}"
+            print(error_msg)
+            return (error_msg,)  # 返回错误消息而不是None
         except requests.exceptions.RequestException as re:
-            print(f"Download Error: {str(re)}")
-            return (None,)
+            error_msg = f"下载错误: {str(re)}"
+            print(error_msg)
+            return (error_msg,)  # 返回错误消息而不是None
         except Exception as e:
-            print(f"Error downloading video: {str(e)}")
-            return (None,) 
+            error_msg = f"视频下载错误: {str(e)}"
+            print(error_msg)
+            return (error_msg,)  # 返回错误消息而不是None
+
+    # 确保节点可以在没有连接的情况下运行
+    def IS_CHANGED(self, video_url, filename_prefix="KLingAI", custom_output_dir=""):
+        # 返回当前时间，确保节点总是执行
+        return time.time() 

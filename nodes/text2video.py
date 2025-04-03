@@ -123,10 +123,10 @@ class KLingAIText2Video:
 
         except ValueError as ve:
             print(f"Validation Error: {str(ve)}")
-            return (None, None, None, None, seed)
+            return (f"Error: {str(ve)}", "failed", "", "", seed)
         except Exception as e:
             print(f"Error creating video task: {str(e)}")
-            return (None, None, None, None, seed)
+            return (f"Error: {str(e)}", "failed", "", "", seed)
 
     def IS_CHANGED(self, api_token, prompt, model_name="kling-v1", 
                   negative_prompt="", cfg_scale=0.5, mode="std",

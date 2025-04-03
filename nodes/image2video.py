@@ -292,10 +292,10 @@ class KLingAIImage2Video:
 
         except ValueError as ve:
             print(f"参数验证错误: {str(ve)}")
-            return (None, None, None, None, seed)
+            return (f"错误: {str(ve)}", "failed", "", "", seed)
         except Exception as e:
             print(f"创建图生视频任务错误: {str(e)}")
-            return (None, None, None, None, seed)
+            return (f"错误: {str(e)}", "failed", "", "", seed)
 
     def IS_CHANGED(self, api_token, image, model_name="kling-v1", 
                  positive_prompt="", negative_prompt="", 
