@@ -65,7 +65,8 @@ class KLingAIAPIKey:
             print(f"Error generating API token: {str(e)}")
             return (None,)
 
-    def IS_CHANGED(self, access_key, secret_key):
+    @classmethod
+    def IS_CHANGED(cls, access_key, secret_key):
         """
         Always return a different value to ensure token is regenerated each time
         """

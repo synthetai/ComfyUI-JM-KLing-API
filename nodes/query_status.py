@@ -17,13 +17,14 @@ class TaskStatusThread(Thread):
 class KLingAIQueryStatus:
     """
     KLingAI Query Task Status Node
-    查询文生视频或图生视频任务状态
+    查询文生视频或图生视频或多图生视频任务状态
     """
 
     def __init__(self):
         self.api_base = "https://api.klingai.com"
         self.text2video_endpoint = "/v1/videos/text2video/{}"
         self.image2video_endpoint = "/v1/videos/image2video/{}"
+        self.multi_image2video_endpoint = "/v1/videos/multi-image2video/{}"
         self.stop_thread = Event()
         self.current_thread = None
 
@@ -40,7 +41,7 @@ class KLingAIQueryStatus:
                     "multiline": False,
                     "placeholder": "可选: 自定义任务ID"
                 }),
-                "task_type": (["auto", "text2video", "image2video"], {
+                "task_type": (["auto", "text2video", "image2video", "multi-image2video"], {
                     "default": "auto"
                 }),
                 "initial_delay_seconds": ("INT", {
@@ -90,13 +91,23 @@ class KLingAIQueryStatus:
         if task_type == "auto":
             # 根据任务ID长度初步判断可能是哪种类型
             if len(query_id) > 10:  # 可灵AI的任务ID通常很长
-                endpoints = [self.image2video_endpoint, self.text2video_endpoint]
+                endpoints = [
+                    self.multi_image2video_endpoint,
+                    self.image2video_endpoint, 
+                    self.text2video_endpoint
+                ]
             else:
-                endpoints = [self.text2video_endpoint, self.image2video_endpoint]
+                endpoints = [
+                    self.text2video_endpoint,
+                    self.image2video_endpoint,
+                    self.multi_image2video_endpoint
+                ]
         elif task_type == "text2video":
             endpoints = [self.text2video_endpoint]
         elif task_type == "image2video":
             endpoints = [self.image2video_endpoint]
+        elif task_type == "multi-image2video":
+            endpoints = [self.multi_image2video_endpoint]
             
         # 记录最后找到的有效端点
         valid_endpoint = None

@@ -118,6 +118,7 @@ class KLingAIVideoDownloader:
             return (error_msg,)  # 返回错误消息而不是None
 
     # 确保节点可以在没有连接的情况下运行
-    def IS_CHANGED(self, video_url, filename_prefix="KLingAI", custom_output_dir=""):
+    @classmethod
+    def IS_CHANGED(cls, video_url, filename_prefix="KLingAI", custom_output_dir=""):
         # 返回当前时间，确保节点总是执行
         return time.time() 
