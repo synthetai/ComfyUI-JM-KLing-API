@@ -25,6 +25,7 @@ class KLingAIQueryStatus:
         self.text2video_endpoint = "/v1/videos/text2video/{}"
         self.image2video_endpoint = "/v1/videos/image2video/{}"
         self.multi_image2video_endpoint = "/v1/videos/multi-image2video/{}"
+        self.lip_sync_endpoint = "/v1/videos/lip-sync/{}"
         self.stop_thread = Event()
         self.current_thread = None
 
@@ -41,7 +42,7 @@ class KLingAIQueryStatus:
                     "multiline": False,
                     "placeholder": "可选: 自定义任务ID"
                 }),
-                "task_type": (["auto", "text2video", "image2video", "multi-image2video"], {
+                "task_type": (["auto", "text2video", "image2video", "multi-image2video", "lip-sync"], {
                     "default": "auto"
                 }),
                 "initial_delay_seconds": ("INT", {
@@ -94,13 +95,15 @@ class KLingAIQueryStatus:
                 endpoints = [
                     self.multi_image2video_endpoint,
                     self.image2video_endpoint, 
-                    self.text2video_endpoint
+                    self.text2video_endpoint,
+                    self.lip_sync_endpoint
                 ]
             else:
                 endpoints = [
                     self.text2video_endpoint,
                     self.image2video_endpoint,
-                    self.multi_image2video_endpoint
+                    self.multi_image2video_endpoint,
+                    self.lip_sync_endpoint
                 ]
         elif task_type == "text2video":
             endpoints = [self.text2video_endpoint]
@@ -108,6 +111,8 @@ class KLingAIQueryStatus:
             endpoints = [self.image2video_endpoint]
         elif task_type == "multi-image2video":
             endpoints = [self.multi_image2video_endpoint]
+        elif task_type == "lip-sync":
+            endpoints = [self.lip_sync_endpoint]
             
         # 记录最后找到的有效端点
         valid_endpoint = None
@@ -166,11 +171,36 @@ class KLingAIQueryStatus:
                         
                         # 任务成功完成
                         if status == "succeed":
-                            videos = data.get("task_result", {}).get("videos", [])
-                            if videos and videos[0].get("url"):
-                                return videos[0].get("url")
-                            print("任务成功但未返回视频URL")
-                            return "任务成功但未返回视频URL"
+                            # 检查是否是lip-sync任务类型
+                            if valid_endpoint == self.lip_sync_endpoint:
+                                videos = data.get("task_result", {}).get("videos", [])
+                                if videos and videos[0].get("url"):
+                                    video_url = videos[0].get("url")
+                                    video_duration = videos[0].get("duration", "未知")
+                                    print(f"口型同步任务成功完成!")
+                                    print(f"视频URL: {video_url}")
+                                    print(f"视频时长: {video_duration}秒")
+                                    
+                                    # 尝试获取并显示原视频信息
+                                    parent_video = data.get("task_info", {}).get("parent_video", {})
+                                    if parent_video:
+                                        parent_id = parent_video.get("id", "未知")
+                                        parent_url = parent_video.get("url", "未知")
+                                        parent_duration = parent_video.get("duration", "未知")
+                                        print(f"原视频ID: {parent_id}")
+                                        print(f"原视频URL: {parent_url}")
+                                        print(f"原视频时长: {parent_duration}秒")
+                                    
+                                    return video_url
+                                print("口型同步任务成功但未返回视频URL")
+                                return "口型同步任务成功但未返回视频URL"
+                            else:
+                                # 处理其他类型的任务
+                                videos = data.get("task_result", {}).get("videos", [])
+                                if videos and videos[0].get("url"):
+                                    return videos[0].get("url")
+                                print("任务成功但未返回视频URL")
+                                return "任务成功但未返回视频URL"
                         # 任务失败
                         elif status == "failed":
                             failed_msg = f"任务失败: {data.get('task_status_msg', '未知错误')}"
