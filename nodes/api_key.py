@@ -52,7 +52,7 @@ class KLingAIAPIKey:
             current_time = int(time.time())
             payload = {
                 "iss": access_key,
-                "exp": current_time + 1800,  # 30分钟后过期
+                "exp": current_time + 7200,  # 30分钟后过期
                 "nbf": current_time - 5  # 5秒前开始生效
             }
             

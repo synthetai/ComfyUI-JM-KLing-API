@@ -5,6 +5,7 @@ from .nodes.video_downloader import KLingAIVideoDownloader
 from .nodes.image2video import KLingAIImage2Video
 from .nodes.multi_image2video import KLingAIMultiImage2Video
 from .nodes.lip_sync import KLingAILipSync
+from .nodes.lip_sync_async import KLingAILipSyncAsync
 
 NODE_CLASS_MAPPINGS = {
     "JM-KLingAI-API/api-key": KLingAIAPIKey,
@@ -13,7 +14,8 @@ NODE_CLASS_MAPPINGS = {
     "JM-KLingAI-API/multi-image2video": KLingAIMultiImage2Video,
     "JM-KLingAI-API/query-status": KLingAIQueryStatus,
     "JM-KLingAI-API/video-downloader": KLingAIVideoDownloader,
-    "JM-KLingAI-API/lip-sync": KLingAILipSync
+    "JM-KLingAI-API/lip-sync": KLingAILipSync,
+    "JM-KLingAI-API/lip-sync-async": KLingAILipSyncAsync
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -23,5 +25,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "JM-KLingAI-API/multi-image2video": "KLingAI Multi-Image to Video",
     "JM-KLingAI-API/query-status": "KLingAI Query Status",
     "JM-KLingAI-API/video-downloader": "KLingAI Video Downloader",
-    "JM-KLingAI-API/lip-sync": "KLingAI Lip Sync"
+    "JM-KLingAI-API/lip-sync": "KLingAI Lip Sync",
+    "JM-KLingAI-API/lip-sync-async": "KLingAI Lip Sync Async"
 }
