@@ -62,8 +62,8 @@ class KLingAIQueryStatus:
             }
         }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("video_url",)
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("video_url", "video_id")
     FUNCTION = "query_task_status"
     CATEGORY = "JM-KLingAI-API"
 
@@ -176,8 +176,10 @@ class KLingAIQueryStatus:
                                 videos = data.get("task_result", {}).get("videos", [])
                                 if videos and videos[0].get("url"):
                                     video_url = videos[0].get("url")
+                                    video_id = videos[0].get("id", "")
                                     video_duration = videos[0].get("duration", "未知")
                                     print(f"口型同步任务成功完成!")
+                                    print(f"视频ID: {video_id}")
                                     print(f"视频URL: {video_url}")
                                     print(f"视频时长: {video_duration}秒")
                                     
@@ -191,21 +193,28 @@ class KLingAIQueryStatus:
                                         print(f"原视频URL: {parent_url}")
                                         print(f"原视频时长: {parent_duration}秒")
                                     
-                                    return video_url
+                                    return (video_url, video_id)
                                 print("口型同步任务成功但未返回视频URL")
-                                return "口型同步任务成功但未返回视频URL"
+                                return ("口型同步任务成功但未返回视频URL", "")
                             else:
                                 # 处理其他类型的任务
                                 videos = data.get("task_result", {}).get("videos", [])
                                 if videos and videos[0].get("url"):
-                                    return videos[0].get("url")
+                                    video_url = videos[0].get("url")
+                                    video_id = videos[0].get("id", "")
+                                    video_duration = videos[0].get("duration", "未知")
+                                    print(f"任务成功完成!")
+                                    print(f"视频ID: {video_id}")
+                                    print(f"视频URL: {video_url}")
+                                    print(f"视频时长: {video_duration}秒")
+                                    return (video_url, video_id)
                                 print("任务成功但未返回视频URL")
-                                return "任务成功但未返回视频URL"
+                                return ("任务成功但未返回视频URL", "")
                         # 任务失败
                         elif status == "failed":
                             failed_msg = f"任务失败: {data.get('task_status_msg', '未知错误')}"
                             print(failed_msg)
-                            return failed_msg
+                            return (failed_msg, "")
                         # 任务仍在处理中，中断当前端点循环，等待下次查询
                         break
                     else:
@@ -219,15 +228,15 @@ class KLingAIQueryStatus:
                 if not current_endpoints:
                     error_msg = "没有可用的端点进行查询"
                     print(error_msg)
-                    return error_msg
+                    return (error_msg, "")
                 print("所有端点查询失败，稍后将重试...")
             
             # 按照配置的时间间隔等待再次查询
             print(f"等待 {poll_interval_seconds} 秒后再次查询...")
             if self.stop_thread.wait(poll_interval_seconds):
-                return "查询被中断"
+                return ("查询被中断", "")
 
-        return "查询被停止"
+        return ("查询被停止", "")
 
     def query_task_status(self, api_token, task_id, external_task_id="", task_type="auto", initial_delay_seconds=10, poll_interval_seconds=10):
         """
@@ -265,25 +274,36 @@ class KLingAIQueryStatus:
             self.current_thread.join()
 
             # 获取结果
-            video_url = self.current_thread.result
-            if video_url is None:
+            result = self.current_thread.result
+            if result is None:
                 video_url = "查询未返回结果"
+                video_id = ""
+            else:
+                # 解包结果，它应该是一个包含两个元素的元组
+                if isinstance(result, tuple) and len(result) == 2:
+                    video_url, video_id = result
+                else:
+                    # 兼容处理可能的旧格式返回值
+                    video_url = str(result)
+                    video_id = ""
 
             if video_url and "http" in video_url:
                 print(f"任务成功完成。视频URL: {video_url}")
+                if video_id:
+                    print(f"视频ID: {video_id}")
             else:
                 print(f"查询结果: {video_url}")
                 
-            return (video_url,)
+            return (video_url, video_id)
 
         except ValueError as ve:
             error_msg = f"参数验证错误: {str(ve)}"
             print(error_msg)
-            return (error_msg,)
+            return (error_msg, "")
         except Exception as e:
             error_msg = f"查询任务状态错误: {str(e)}"
             print(error_msg)
-            return (error_msg,)
+            return (error_msg, "")
 
     def __del__(self):
         """
