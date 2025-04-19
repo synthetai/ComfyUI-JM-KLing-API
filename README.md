@@ -27,6 +27,22 @@ Before using this node, you need to have [a KLing AI API key](https://app.klinga
 
 ![](https://cdn.nlark.com/yuque/0/2025/png/226202/1743646162371-59f6539c-64bd-4ff7-82d7-fb10640cc427.png)
 
+### <font style="color:rgb(31, 35, 40);">KLingAI Lip Sync</font>
+<font style="color:rgb(31, 35, 40);">This node is used to create a lip sync task that makes a video's mouth movements match with provided audio.</font>
+
+### <font style="color:rgb(31, 35, 40);">KLingAI Lip Sync Async</font>
+<font style="color:rgb(31, 35, 40);">This node processes longer audio files by automatically splitting them into segments and creates lip sync tasks asynchronously. It then monitors task progress, downloads the generated videos, and merges them into a single output video.</font>
+
+<font style="color:rgb(31, 35, 40);">Features:</font>
+- <font style="color:rgb(31, 35, 40);">Splits audio into 10-second segments (configurable)</font>
+- <font style="color:rgb(31, 35, 40);">Supports both local audio files and audio URLs</font>
+- <font style="color:rgb(31, 35, 40);">Maintains segment order during processing and final merging</font>
+- <font style="color:rgb(31, 35, 40);">Asynchronously creates tasks for all segments</font>
+- <font style="color:rgb(31, 35, 40);">Monitors task status with configurable poll interval</font>
+- <font style="color:rgb(31, 35, 40);">Downloads and merges videos using FFmpeg</font>
+- <font style="color:rgb(31, 35, 40);">Organizes files in a structured temporary directory</font>
+
+<font style="color:rgb(31, 35, 40);">Note: This node requires the `pydub` package and FFmpeg to be installed on your system.</font>
   
 
 
