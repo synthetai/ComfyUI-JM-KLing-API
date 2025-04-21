@@ -5,6 +5,7 @@ import requests
 from pathlib import Path
 import folder_paths
 import time
+import json
 
 
 class KLingAIVideoDownloader:
@@ -42,6 +43,7 @@ class KLingAIVideoDownloader:
     FUNCTION = "download_video"
     CATEGORY = "JM-KLingAI-API"
     OUTPUT_NODE = True  # 标记为可作为终端节点的节点
+    OUTPUT_IS_LIST = (False,)  # 指示输出不是列表
 
     def get_next_sequence_number(self, directory, filename_prefix):
         """
@@ -73,9 +75,12 @@ class KLingAIVideoDownloader:
         Download video from URL and save to local directory
         """
         try:
-            # Validate inputs
-            if not video_url:
-                raise ValueError("视频URL不能为空")
+            # 在实际执行时验证输入
+            if video_url is None or (isinstance(video_url, str) and not video_url.strip()):
+                error_msg = "视频URL不能为空"
+                print(error_msg)
+                return (error_msg,)
+                
             if not filename_prefix:
                 filename_prefix = "KLingAI"
 
@@ -102,6 +107,10 @@ class KLingAIVideoDownloader:
                         f.write(chunk)
 
             print(f"视频成功下载到: {filepath}")
+            
+            # 为了确保在历史记录中显示，创建预览信息
+            self.save_video_preview_info(filepath)
+            
             return (filepath,)
 
         except ValueError as ve:
@@ -116,6 +125,40 @@ class KLingAIVideoDownloader:
             error_msg = f"视频下载错误: {str(e)}"
             print(error_msg)
             return (error_msg,)  # 返回错误消息而不是None
+
+    def save_video_preview_info(self, filepath):
+        """
+        保存视频预览信息以确保在历史记录中显示
+        """
+        try:
+            # 获取相对路径以便在UI中正确显示
+            rel_path = os.path.relpath(filepath, start=self.default_output_dir)
+            file_info = {
+                "filename": os.path.basename(filepath),
+                "type": "video",
+                "subfolder": os.path.dirname(rel_path) if os.path.dirname(rel_path) else "",
+                "format": "video/mp4"
+            }
+            
+            # 获取文件大小
+            file_size = os.path.getsize(filepath)
+            file_info["size"] = f"{file_size / (1024 * 1024):.2f} MB"
+            
+            # 打印预览信息
+            print(f"视频文件信息: {json.dumps(file_info, ensure_ascii=False)}")
+            
+            # 尝试将信息写入预览文件
+            preview_dir = os.path.join(self.default_output_dir, ".previews")
+            if not os.path.exists(preview_dir):
+                os.makedirs(preview_dir, exist_ok=True)
+                
+            preview_file = os.path.join(preview_dir, f"{os.path.basename(filepath)}.json")
+            with open(preview_file, 'w', encoding='utf-8') as f:
+                json.dump(file_info, f, ensure_ascii=False, indent=2)
+                
+            print(f"已保存预览信息: {preview_file}")
+        except Exception as e:
+            print(f"保存预览信息出错 (不影响下载): {str(e)}")
 
     # 确保节点可以在没有连接的情况下运行
     @classmethod
