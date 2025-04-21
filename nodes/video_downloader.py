@@ -38,12 +38,12 @@ class KLingAIVideoDownloader:
             }
         }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("video_path",)
+    RETURN_TYPES = ("STRING", "STRING",)
+    RETURN_NAMES = ("video_path", "video_url",)
     FUNCTION = "download_video"
     CATEGORY = "JM-KLingAI-API"
     OUTPUT_NODE = True  # 标记为可作为终端节点的节点
-    OUTPUT_IS_LIST = (False,)  # 指示输出不是列表
+    OUTPUT_IS_LIST = (False, False,)  # 指示输出不是列表
 
     def get_next_sequence_number(self, directory, filename_prefix):
         """
@@ -79,7 +79,7 @@ class KLingAIVideoDownloader:
             if video_url is None or (isinstance(video_url, str) and not video_url.strip()):
                 error_msg = "视频URL不能为空"
                 print(error_msg)
-                return (error_msg,)
+                return (error_msg, video_url)
                 
             if not filename_prefix:
                 filename_prefix = "KLingAI"
@@ -111,20 +111,20 @@ class KLingAIVideoDownloader:
             # 为了确保在历史记录中显示，创建预览信息
             self.save_video_preview_info(filepath)
             
-            return (filepath,)
+            return (filepath, video_url)
 
         except ValueError as ve:
             error_msg = f"参数错误: {str(ve)}"
             print(error_msg)
-            return (error_msg,)  # 返回错误消息而不是None
+            return (error_msg, video_url)  # 返回错误消息而不是None
         except requests.exceptions.RequestException as re:
             error_msg = f"下载错误: {str(re)}"
             print(error_msg)
-            return (error_msg,)  # 返回错误消息而不是None
+            return (error_msg, video_url)  # 返回错误消息而不是None
         except Exception as e:
             error_msg = f"视频下载错误: {str(e)}"
             print(error_msg)
-            return (error_msg,)  # 返回错误消息而不是None
+            return (error_msg, video_url)  # 返回错误消息而不是None
 
     def save_video_preview_info(self, filepath):
         """

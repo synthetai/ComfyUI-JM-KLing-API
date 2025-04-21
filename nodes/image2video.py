@@ -24,9 +24,15 @@ class KLingAIImage2Video:
         return {
             "required": {
                 "api_token": ("STRING", {"default": "", "multiline": False}),
-                "image": ("IMAGE",),
             },
             "optional": {
+                "image_type": (["Base64", "URL"], {"default": "Base64"}),
+                "image": ("IMAGE",),
+                "image_url": ("STRING", {
+                    "default": "",
+                    "multiline": False,
+                    "placeholder": "图片URL地址"
+                }),
                 "model_name": (["kling-v1", "kling-v1-5", "kling-v1-6"], {"default": "kling-v1"}),
                 "positive_prompt": ("STRING", {
                     "default": "", 
@@ -180,7 +186,8 @@ class KLingAIImage2Video:
                 return False, "simple类型摄像机控制至少需要一个方向参数不为0"
         return True, ""
 
-    def create_image2video_task(self, api_token, image, model_name="kling-v1", 
+    def create_image2video_task(self, api_token, image_type="Base64", image=None, 
+                              image_url="", model_name="kling-v1", 
                               positive_prompt="", negative_prompt="", 
                               cfg_scale=0.5, mode="std", duration="5", 
                               image_tail=None, use_camera_control=False,
@@ -196,8 +203,12 @@ class KLingAIImage2Video:
             # 验证必要参数
             if not api_token:
                 raise ValueError("API令牌不能为空")
-            if image is None:
-                raise ValueError("输入图像不能为空")
+            
+            # 检查图像参数
+            if image_type == "Base64" and image is None:
+                raise ValueError("使用Base64模式时，输入图像不能为空")
+            if image_type == "URL" and not image_url:
+                raise ValueError("使用URL模式时，图片URL不能为空")
             
             # 生成随机种子（本地使用，不发送给API）
             if seed == -1:
@@ -218,13 +229,6 @@ class KLingAIImage2Video:
                 if not valid:
                     raise ValueError(f"摄像机参数错误: {msg}")
 
-            # 转换图像为base64
-            image_base64 = self.image_to_base64(image)
-            if not image_base64:
-                raise ValueError("图像转换为base64失败")
-                
-            image_tail_base64 = self.image_to_base64(image_tail) if image_tail is not None else None
-            
             # 准备请求头
             headers = {
                 "Content-Type": "application/json",
@@ -234,19 +238,37 @@ class KLingAIImage2Video:
             # 准备请求体
             payload = {
                 "model_name": model_name,
-                "image": image_base64,
                 "cfg_scale": float(cfg_scale),
                 "mode": mode,
                 "duration": duration
             }
+            
+            # 根据选择的图像类型处理输入
+            if image_type == "Base64":
+                # 转换图像为base64
+                image_base64 = self.image_to_base64(image)
+                if not image_base64:
+                    raise ValueError("图像转换为base64失败")
+                payload["image"] = image_base64
+                print("使用Base64方式处理图像")
+            else:  # URL模式
+                # API要求参数名仍然是"image"，只是值是URL而不是Base64
+                if not image_url:
+                    raise ValueError("图片URL不能为空")
+                payload["image"] = image_url.strip()
+                print(f"使用URL方式处理图像: {image_url}")
+            
+            # 处理尾帧图像
+            if image_tail is not None:
+                image_tail_base64 = self.image_to_base64(image_tail)
+                if image_tail_base64:
+                    payload["image_tail"] = image_tail_base64
             
             # 添加可选参数
             if positive_prompt:
                 payload["prompt"] = positive_prompt
             if negative_prompt:
                 payload["negative_prompt"] = negative_prompt
-            if image_tail_base64:
-                payload["image_tail"] = image_tail_base64
             if external_task_id:
                 payload["external_task_id"] = external_task_id
             if callback_url:
@@ -263,6 +285,7 @@ class KLingAIImage2Video:
             url = f"{self.api_base}{self.endpoint}"
             print(f"正在发送请求到: {url}")
             print(f"使用本地种子: {seed} (仅用于本地，未发送给API)")
+            print(f"使用图像模式: {image_type}")
             
             response = requests.post(url, headers=headers, json=payload)
             response_data = response.json()
@@ -297,7 +320,9 @@ class KLingAIImage2Video:
             print(f"创建图生视频任务错误: {str(e)}")
             return (f"错误: {str(e)}", "failed", "", "", seed)
 
-    def IS_CHANGED(self, api_token, image, model_name="kling-v1", 
+    @classmethod
+    def IS_CHANGED(cls, api_token, image_type="Base64", image=None, 
+                 image_url="", model_name="kling-v1", 
                  positive_prompt="", negative_prompt="", 
                  cfg_scale=0.5, mode="std", duration="5", 
                  image_tail=None, use_camera_control=False,
