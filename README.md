@@ -43,7 +43,39 @@ Before using this node, you need to have [a KLing AI API key](https://app.klinga
 - <font style="color:rgb(31, 35, 40);">Organizes files in a structured temporary directory</font>
 
 <font style="color:rgb(31, 35, 40);">Note: This node requires the `pydub` package and FFmpeg to be installed on your system.</font>
+
+### <font style="color:rgb(31, 35, 40);">KLingAI Image Generation</font>
+<font style="color:rgb(31, 35, 40);">This node is used to generate images from text prompts using KLingAI's image generation API.</font>
+
+<font style="color:rgb(31, 35, 40);">Features:</font>
+- <font style="color:rgb(31, 35, 40);">Text-to-image generation with customizable parameters</font>
+- <font style="color:rgb(31, 35, 40);">Support for reference images (both via direct upload and URL)</font>
+- <font style="color:rgb(31, 35, 40);">Different reference modes: subject (clothing, pose, etc.) and face (appearance)</font>
+- <font style="color:rgb(31, 35, 40);">Adjustable fidelity settings for reference images</font>
+- <font style="color:rgb(31, 35, 40);">Multiple aspect ratios to choose from</font>
+- <font style="color:rgb(31, 35, 40);">Ability to generate multiple images per request (up to 9)</font>
+- <font style="color:rgb(31, 35, 40);">Support for both kling-v1 and kling-v1-5 models</font>
   
+### <font style="color:rgb(31, 35, 40);">KLingAI Image Downloader</font>
+<font style="color:rgb(31, 35, 40);">This node downloads images from a URL and saves them to a local directory.</font>
+
+<font style="color:rgb(31, 35, 40);">Features:</font>
+- <font style="color:rgb(31, 35, 40);">Downloads images from a given URL</font>
+- <font style="color:rgb(31, 35, 40);">Saves images with customizable filename prefixes</font>
+- <font style="color:rgb(31, 35, 40);">Supports PNG, JPG, JPEG, and WebP formats</font>
+- <font style="color:rgb(31, 35, 40);">Automatically detects image format from URL</font>
+- <font style="color:rgb(31, 35, 40);">Optional custom output directory</font>
+- <font style="color:rgb(31, 35, 40);">Returns the saved image path, original URL, and loaded image for further processing</font>
+
+### <font style="color:rgb(31, 35, 40);">KLingAI Video Downloader</font>
+<font style="color:rgb(31, 35, 40);">This node downloads videos from a URL and saves them to a local directory.</font>
+
+<font style="color:rgb(31, 35, 40);">Features:</font>
+- <font style="color:rgb(31, 35, 40);">Downloads videos from a specified URL</font>
+- <font style="color:rgb(31, 35, 40);">Saves videos with customizable filename prefixes</font>
+- <font style="color:rgb(31, 35, 40);">Supports MP4 video format</font>
+- <font style="color:rgb(31, 35, 40);">Optional custom output directory</font>
+- <font style="color:rgb(31, 35, 40);">Returns the saved video path and original URL for further processing</font>
 
 
 

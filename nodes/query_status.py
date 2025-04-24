@@ -17,7 +17,7 @@ class TaskStatusThread(Thread):
 class KLingAIQueryStatus:
     """
     KLingAI Query Task Status Node
-    查询文生视频或图生视频或多图生视频任务状态
+    查询文生视频、图生视频、多图生视频、口型同步或文生图任务状态
     """
 
     def __init__(self):
@@ -26,6 +26,7 @@ class KLingAIQueryStatus:
         self.image2video_endpoint = "/v1/videos/image2video/{}"
         self.multi_image2video_endpoint = "/v1/videos/multi-image2video/{}"
         self.lip_sync_endpoint = "/v1/videos/lip-sync/{}"
+        self.image_generation_endpoint = "/v1/images/generations/{}"
         self.stop_thread = Event()
         self.current_thread = None
 
@@ -42,7 +43,7 @@ class KLingAIQueryStatus:
                     "multiline": False,
                     "placeholder": "可选: 自定义任务ID"
                 }),
-                "task_type": (["auto", "text2video", "image2video", "multi-image2video", "lip-sync"], {
+                "task_type": (["auto", "text2video", "image2video", "multi-image2video", "lip-sync", "image-generation"], {
                     "default": "auto"
                 }),
                 "initial_delay_seconds": ("INT", {
@@ -63,7 +64,7 @@ class KLingAIQueryStatus:
         }
 
     RETURN_TYPES = ("STRING", "STRING")
-    RETURN_NAMES = ("video_url", "video_id")
+    RETURN_NAMES = ("url", "id")
     FUNCTION = "query_task_status"
     CATEGORY = "JM-KLingAI-API"
 
@@ -98,14 +99,16 @@ class KLingAIQueryStatus:
                     self.multi_image2video_endpoint,
                     self.image2video_endpoint, 
                     self.text2video_endpoint,
-                    self.lip_sync_endpoint
+                    self.lip_sync_endpoint,
+                    self.image_generation_endpoint
                 ]
             else:
                 endpoints = [
                     self.text2video_endpoint,
                     self.image2video_endpoint,
                     self.multi_image2video_endpoint,
-                    self.lip_sync_endpoint
+                    self.lip_sync_endpoint,
+                    self.image_generation_endpoint
                 ]
         elif task_type == "text2video":
             endpoints = [self.text2video_endpoint]
@@ -115,6 +118,8 @@ class KLingAIQueryStatus:
             endpoints = [self.multi_image2video_endpoint]
         elif task_type == "lip-sync":
             endpoints = [self.lip_sync_endpoint]
+        elif task_type == "image-generation":
+            endpoints = [self.image_generation_endpoint]
         
         print(f"[DEBUG] 将尝试以下端点: {endpoints}")
             
@@ -221,6 +226,31 @@ class KLingAIQueryStatus:
                                 print("口型同步任务成功但未返回视频URL")
                                 print(f"[DEBUG] 接口返回数据但缺少预期的视频URL: {json.dumps(videos, indent=2, ensure_ascii=False)}")
                                 return ("口型同步任务成功但未返回视频URL", "")
+                            # 检查是否是文生图任务类型
+                            elif valid_endpoint == self.image_generation_endpoint:
+                                images = data.get("task_result", {}).get("images", [])
+                                if images and len(images) > 0:
+                                    # 如果有多张图片，使用第一张图片的URL
+                                    image_url = images[0].get("url", "")
+                                    image_index = images[0].get("index", 0)
+                                    
+                                    print(f"文生图任务成功完成!")
+                                    print(f"生成图片数量: {len(images)}")
+                                    print(f"图片URL: {image_url}")
+                                    
+                                    # 打印所有图片的URL
+                                    for i, img in enumerate(images):
+                                        img_url = img.get("url", "")
+                                        img_idx = img.get("index", i)
+                                        print(f"图片 {img_idx}: {img_url}")
+                                    
+                                    # 打印任务结果完整信息
+                                    print(f"[DEBUG] 完整任务结果: {json.dumps(data.get('task_result', {}), indent=2, ensure_ascii=False)}")
+                                    
+                                    return (image_url, str(image_index))
+                                print("文生图任务成功但未返回图片URL")
+                                print(f"[DEBUG] 接口返回数据但缺少预期的图片URL: {json.dumps(images, indent=2, ensure_ascii=False)}")
+                                return ("文生图任务成功但未返回图片URL", "")
                             else:
                                 # 处理其他类型的任务
                                 videos = data.get("task_result", {}).get("videos", [])
