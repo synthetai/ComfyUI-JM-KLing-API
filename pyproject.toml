@@ -1,0 +1,15 @@
+[project]
+name = "jm-kling-api"
+description = "This is a custom node for ComfyUI that allows you to use the KLingAI API directly within the ComfyUI environment. It is developed based on the KLingAI API documentation. For more details, please refer to the official documentation. [a/KLingAI API Documentation](https://app.klingai.com/global/dev/document-api/quickStart/productIntroduction/overview)."
+version = "1.0.0"
+license = {file = "LICENSE"}
+dependencies = ["PyJWT>=2.0.0", "requests>=2.25.1"]
+
+[project.urls]
+Repository = "https://github.com/synthetai/ComfyUI-JM-KLing-API"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "ComfyUI-JM-KLing-API"
+Icon = ""
