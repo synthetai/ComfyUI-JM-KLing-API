@@ -96,15 +96,15 @@ class KLingAIQueryStatus:
             # 根据任务ID长度初步判断可能是哪种类型
             if len(query_id) > 10:  # 可灵AI的任务ID通常很长
                 endpoints = [
-                    self.multi_image2video_endpoint,
+                    self.text2video_endpoint,    # 将text2video放在第一位
                     self.image2video_endpoint, 
-                    self.text2video_endpoint,
+                    self.multi_image2video_endpoint,
                     self.lip_sync_endpoint,
                     self.image_generation_endpoint
                 ]
             else:
                 endpoints = [
-                    self.text2video_endpoint,
+                    self.text2video_endpoint,    # 将text2video放在第一位
                     self.image2video_endpoint,
                     self.multi_image2video_endpoint,
                     self.lip_sync_endpoint,
@@ -132,8 +132,10 @@ class KLingAIQueryStatus:
             # 如果上一次查询找到了有效端点，只使用该端点
             if valid_endpoint:
                 current_endpoints = [valid_endpoint]
+                print(f"[DEBUG] 使用上次成功的端点: {valid_endpoint}")
             else:
                 current_endpoints = endpoints.copy()
+                print(f"[DEBUG] 尚未找到有效端点，将尝试所有可能端点")
                 
             for endpoint in current_endpoints:
                 try:
@@ -180,11 +182,19 @@ class KLingAIQueryStatus:
                     # 获取任务状态
                     data = response_data.get("data", {})
                     status = data.get("task_status")
+                    status_msg = data.get("task_status_msg", "")
                     
                     # 如果能获取到状态，说明端点正确
                     if status:
+                        # 如果状态消息是"task not found"，可能是端点不对
+                        if status == "failed" and status_msg == "task not found":
+                            print(f"端点 {endpoint} 返回 task not found，尝试其他端点...")
+                            continue
+                            
+                        # 找到了有效端点
                         valid_endpoint = endpoint
                         success = True
+                        print(f"找到有效端点: {endpoint}")
                         print(f"当前任务状态: {status}")
                         print(f"[DEBUG] 任务详情: task_id={data.get('task_id')}, created_at={data.get('created_at')}, updated_at={data.get('updated_at')}")
                         

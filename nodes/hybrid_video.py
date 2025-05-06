@@ -119,6 +119,22 @@ class KLingAIHybridVideo:
     FUNCTION = "create_video_task"
     CATEGORY = "JM-KLingAI-API/hybrid-video"
 
+    # 添加UPDATE_TYPES方法实现动态UI
+    @classmethod
+    def UPDATE_TYPES(s, **kwargs):
+        # 获取当前模型
+        model_name = kwargs.get("model_name", "kling-v1")
+        
+        # 文生视频下使用限制
+        if model_name == "kling-v1-6":
+            # 只检查我们是否在文生视频模式，即用户没有提供图像
+            # 在UI层面很难判断，所以我们在create_video_task中做动态检查
+            # 这里默认先让全部模型都可以选择pro模式
+            return {"mode": (["std", "pro"], {"default": "std"})}
+        
+        # 其他情况都提供全部选项
+        return {"mode": (["std", "pro"], {"default": "std"})}
+
     def tensor_to_pil(self, tensor):
         """将ComfyUI的Tensor图像转换为PIL图像"""
         if tensor is None:
@@ -206,10 +222,6 @@ class KLingAIHybridVideo:
             if negative_prompt and len(negative_prompt) > 2500:
                 raise ValueError("负向提示词不能超过2500字符")
             
-            # 生成随机种子（本地使用，不发送给API）
-            if seed == -1:
-                seed = random.randint(0, 0xffffffffffffffff)
-                
             # 判断使用哪种API
             has_image = False
             image_base64 = None
@@ -227,6 +239,15 @@ class KLingAIHybridVideo:
             endpoint = self.image2video_endpoint if has_image else self.text2video_endpoint
             task_type = "图生视频" if has_image else "文生视频"
             
+            # 验证模型和模式的兼容性 - 只在文生视频时检查
+            if not has_image and model_name == "kling-v1-6" and mode == "pro":
+                print(f"警告: 文生视频模式下，模型 {model_name} 不支持 pro 模式，自动切换为 std 模式")
+                mode = "std"
+            
+            # 生成随机种子（本地使用，不发送给API）
+            if seed == -1:
+                seed = random.randint(0, 0xffffffffffffffff)
+                
             # 准备请求头
             headers = {
                 "Content-Type": "application/json",
