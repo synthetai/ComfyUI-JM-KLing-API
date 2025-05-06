@@ -8,6 +8,7 @@ from .nodes.lip_sync import KLingAILipSync
 from .nodes.lip_sync_async import KLingAILipSyncAsync
 from .nodes.image_generation import KLingAIImageGeneration
 from .nodes.image_downloader import KLingAIImageDownloader
+from .nodes.hybrid_video import KLingAIHybridVideo
 
 NODE_CLASS_MAPPINGS = {
     "JM-KLingAI-API/api-key": KLingAIAPIKey,
@@ -19,7 +20,8 @@ NODE_CLASS_MAPPINGS = {
     "JM-KLingAI-API/lip-sync": KLingAILipSync,
     "JM-KLingAI-API/lip-sync-async": KLingAILipSyncAsync,
     "JM-KLingAI-API/image-generation": KLingAIImageGeneration,
-    "JM-KLingAI-API/image-downloader": KLingAIImageDownloader
+    "JM-KLingAI-API/image-downloader": KLingAIImageDownloader,
+    "JM-KLingAI-API/hybrid-video": KLingAIHybridVideo
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -32,5 +34,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "JM-KLingAI-API/lip-sync": "KLingAI Lip Sync",
     "JM-KLingAI-API/lip-sync-async": "KLingAI Lip Sync Async",
     "JM-KLingAI-API/image-generation": "KLingAI Image Generation",
-    "JM-KLingAI-API/image-downloader": "KLingAI Image Downloader"
+    "JM-KLingAI-API/image-downloader": "KLingAI Image Downloader",
+    "JM-KLingAI-API/hybrid-video": "KLingAI 混合视频生成"
 }

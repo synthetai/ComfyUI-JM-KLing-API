@@ -77,5 +77,17 @@ Before using this node, you need to have [a KLing AI API key](https://app.klinga
 - <font style="color:rgb(31, 35, 40);">Optional custom output directory</font>
 - <font style="color:rgb(31, 35, 40);">Returns the saved video path and original URL for further processing</font>
 
+### <font style="color:rgb(31, 35, 40);">KLingAI 混合视频生成</font>
+<font style="color:rgb(31, 35, 40);">这是一个融合了文生视频和图生视频功能的节点，能够根据用户输入自动选择合适的API。</font>
+
+<font style="color:rgb(31, 35, 40);">功能特点:</font>
+- <font style="color:rgb(31, 35, 40);">智能判断：如果提供了图像则使用图生视频API，否则使用文生视频API</font>
+- <font style="color:rgb(31, 35, 40);">统一界面：在一个节点中同时支持两种视频生成方式</font>
+- <font style="color:rgb(31, 35, 40);">支持图像输入（Base64或URL方式）</font>
+- <font style="color:rgb(31, 35, 40);">支持正向和负向提示词</font>
+- <font style="color:rgb(31, 35, 40);">支持图生视频的摄像机控制功能</font>
+- <font style="color:rgb(31, 35, 40);">支持尾帧图像设置</font>
+- <font style="color:rgb(31, 35, 40);">兼容所有KLingAI视频模型</font>
+
 
 
