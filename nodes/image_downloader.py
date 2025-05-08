@@ -21,6 +21,7 @@ class KLingAIImageDownloader:
     """
 
     def __init__(self):
+        # 确保使用ComfyUI的output目录
         self.default_output_dir = folder_paths.get_output_directory()
         self.type = "image"
         self.output_dir = self.default_output_dir
@@ -37,28 +38,27 @@ class KLingAIImageDownloader:
                     "multiline": False,
                     "placeholder": "Base filename for downloaded image"
                 }),
-                "image": (["#DATA"], {"image_upload": True}),  # 添加支持上传图片的控件
-                "image_data": ("STRING", {"default": "", "multiline": False}),
             },
             "optional": {
                 "custom_output_dir": ("STRING", {
                     "default": "",
                     "multiline": False,
-                    "placeholder": "Optional: Custom output directory path"
+                    "placeholder": "Optional: Custom output directory path within outputs folder"
                 }),
             }
         }
 
-    RETURN_TYPES = ("IMAGE", "MASK", "STRING", "STRING")
-    RETURN_NAMES = ("IMAGE", "MASK", "image_path", "image_url")
-    FUNCTION = "process_image"
+    RETURN_TYPES = ("IMAGE", "STRING", "STRING")
+    RETURN_NAMES = ("IMAGE", "image_path", "image_url")
+    FUNCTION = "download_image"
     CATEGORY = "JM-KLingAI-API"
-    OUTPUT_NODE = True
-    OUTPUT_IS_LIST = (False, False, False, False)
+    OUTPUT_NODE = True  # 标记为可作为终端节点的节点
+    OUTPUT_IS_LIST = (False, False, False)  # 指示输出不是列表
 
     def get_next_sequence_number(self, directory, filename_prefix):
         """
         Get the next sequence number for the image file
+        始终从0001开始，如果文件已存在则自动递增
         """
         # 支持常见的图片格式
         patterns = [
@@ -73,11 +73,11 @@ class KLingAIImageDownloader:
             existing_files.extend(glob.glob(os.path.join(directory, pattern)))
 
         if not existing_files:
-            return 1
+            return 1  # 始终从1开始，对应_0001格式
 
         numbers = []
         for f in existing_files:
-            # 匹配不同格式的文件名
+            # 匹配不同格式的文件名，提取序号部分
             match = re.search(f"{filename_prefix}_(\d+)\.(png|jpg|jpeg|webp)$", f)
             if match:
                 numbers.append(int(match.group(1)))
@@ -87,6 +87,7 @@ class KLingAIImageDownloader:
     def ensure_directory(self, directory):
         """
         Ensure the directory exists, create if it doesn't
+        对于自定义目录，确保是在output目录下的子目录
         """
         Path(directory).mkdir(parents=True, exist_ok=True)
         return directory
@@ -119,11 +120,26 @@ class KLingAIImageDownloader:
             if not filename_prefix:
                 filename_prefix = "KLingAI"
 
-            # Determine output directory
-            output_dir = custom_output_dir if custom_output_dir else self.default_output_dir
+            # 确定输出目录，如果指定了自定义目录，确保是output目录的子目录
+            output_dir = self.default_output_dir
+            if custom_output_dir:
+                # 确保自定义路径是一个相对路径，或将绝对路径转为相对output目录的路径
+                if os.path.isabs(custom_output_dir):
+                    # 如果是绝对路径，尝试将其转为相对于output目录的路径，或直接使用output目录
+                    rel_path = os.path.relpath(custom_output_dir, start=self.default_output_dir)
+                    if rel_path.startswith('..'):  # 路径在output目录之外
+                        print(f"警告: 自定义路径 {custom_output_dir} 不在output目录内，将使用默认output目录")
+                    else:
+                        output_dir = os.path.join(self.default_output_dir, rel_path)
+                else:
+                    # 相对路径直接拼接到output目录
+                    output_dir = os.path.join(self.default_output_dir, custom_output_dir)
+            
+            # 确保目录存在
             output_dir = self.ensure_directory(output_dir)
+            print(f"图片将保存至: {output_dir}")
 
-            # Get next sequence number
+            # 获取下一个序列号
             seq_num = self.get_next_sequence_number(output_dir, filename_prefix)
 
             # 检测图片格式
@@ -133,16 +149,16 @@ class KLingAIImageDownloader:
             elif ".webp" in image_url.lower():
                 image_format = "webp"
 
-            # Create filename
+            # 创建文件名，格式为 prefix_0001.png
             filename = f"{filename_prefix}_{seq_num:04d}.{image_format}"
             filepath = os.path.join(output_dir, filename)
 
-            # Download image
+            # 下载图片
             print(f"正在从 {image_url} 下载图片")
             response = requests.get(image_url, stream=True)
             response.raise_for_status()
 
-            # Save image
+            # 保存图片
             with open(filepath, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
@@ -192,88 +208,6 @@ class KLingAIImageDownloader:
             empty_tensor = torch.zeros((1, 64, 64, 3), dtype=torch.float32)
             return (empty_tensor, error_msg, image_url)
 
-    def process_image(self, image_url, filename_prefix="KLingAI", image="#DATA", image_data="", custom_output_dir=""):
-        """
-        处理图片：如果提供了图片数据，直接处理；否则尝试下载URL中的图片
-        """
-        try:
-            # 设置输出目录
-            output_dir = custom_output_dir if custom_output_dir else self.default_output_dir
-            output_dir = self.ensure_directory(output_dir)
-            self.output_dir = output_dir
-            self.prefix = filename_prefix
-            
-            # 默认掩码（全透明）
-            mask = torch.zeros((64, 64), dtype=torch.float32, device="cpu").unsqueeze(0)
-            
-            # 如果提供了图片数据（通过上传）
-            if image_data and image_data != "" and image_data.startswith("data:"):
-                try:
-                    # 解码base64图片数据
-                    image_data_binary = base64.b64decode(image_data.split(",")[1])
-                    i = Image.open(BytesIO(image_data_binary))
-                    
-                    # 转换图像格式
-                    img_rgb = i.convert("RGB")
-                    image_array = np.array(img_rgb).astype(np.float32) / 255.0
-                    image_tensor = torch.from_numpy(image_array)[None,]
-                    
-                    # 检查是否有alpha通道，创建掩码
-                    if 'A' in i.getbands():
-                        alpha = np.array(i.getchannel('A')).astype(np.float32) / 255.0
-                        mask = 1. - torch.from_numpy(alpha).unsqueeze(0)
-                    
-                    # 保存上传的图片
-                    seq_num = self.get_next_sequence_number(output_dir, filename_prefix)
-                    filepath = os.path.join(output_dir, f"{filename_prefix}_{seq_num:04d}.png")
-                    img_rgb.save(filepath, "PNG")
-                    print(f"上传的图片已保存至: {filepath}")
-                    self.save_image_preview_info(filepath)
-                    
-                    return (image_tensor, mask, filepath, "本地上传")
-                    
-                except Exception as e:
-                    print(f"处理上传的图片时出错: {str(e)}")
-                    # 如果处理上传失败但有URL，则继续尝试下载
-                    if not image_url or not image_url.strip():
-                        raise ValueError(f"图片处理失败: {str(e)}")
-            
-            # 如果没有上传图片或处理失败，尝试从URL下载
-            if image_url and image_url.strip():
-                try:
-                    filepath = self.download_image(image_url, output_dir, filename_prefix)
-                    
-                    # 加载下载的图片
-                    pil_image = Image.open(filepath).convert("RGB")
-                    image_array = np.array(pil_image).astype(np.float32) / 255.0
-                    image_tensor = torch.from_numpy(image_array)[None,]
-                    
-                    # 转换为base64用于预览
-                    image_data_base64 = self.image_to_base64(pil_image)
-                    
-                    print(f"成功加载图片，尺寸: {pil_image.width}x{pil_image.height}")
-                    
-                    return (image_tensor, mask, filepath, image_url)
-                    
-                except Exception as e:
-                    print(f"从URL下载图片失败: {str(e)}")
-                    if not image_data or image_data == "" or not image_data.startswith("data:"):
-                        raise ValueError(f"无法下载图片: {str(e)}")
-            
-            # 如果没有提供有效的URL或图片数据
-            if (not image_url or not image_url.strip()) and (not image_data or not image_data.startswith("data:")):
-                raise ValueError("请提供有效的图片URL或上传图片")
-                
-            # 如果代码执行到这里，可能是前面的某个步骤成功但没有正确返回
-            raise ValueError("未知错误，无法处理图片")
-            
-        except Exception as e:
-            print(f"图片处理错误: {str(e)}")
-            # 创建空白图像和掩码
-            empty_tensor = torch.zeros((1, 64, 64, 3), dtype=torch.float32)
-            empty_mask = torch.zeros((1, 64, 64), dtype=torch.float32)
-            return (empty_tensor, empty_mask, f"错误: {str(e)}", image_url)
-
     def save_image_preview_info(self, filepath):
         """
         保存图片预览信息以确保在历史记录中显示
@@ -319,10 +253,6 @@ class KLingAIImageDownloader:
 
     # 确保节点可以在没有连接的情况下运行
     @classmethod
-    def IS_CHANGED(cls, image_url, filename_prefix="KLingAI", image="#DATA", image_data="", custom_output_dir=""):
-        # 如果有图片数据上传，返回图片数据的哈希值
-        if image_data and image_data.startswith("data:"):
-            import hashlib
-            return hashlib.md5(image_data.encode()).hexdigest()
-        # 否则使用当前时间，确保节点总是执行
+    def IS_CHANGED(cls, image_url, filename_prefix="KLingAI", custom_output_dir=""):
+        # 返回当前时间，确保节点总是执行
         return time.time() 
