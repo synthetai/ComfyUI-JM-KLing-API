@@ -13,9 +13,23 @@ import os
 import folder_paths
 
 # 设置WEB_DIRECTORY指向js子目录
-# 官方文档建议使用"./js"
-WEB_DIRECTORY = os.path.join(os.path.dirname(os.path.realpath(__file__)), "js")
+# js目录应位于插件根目录下
+current_dir = os.path.dirname(os.path.realpath(__file__))
+WEB_DIRECTORY = os.path.join(current_dir, "js")
 print(f"JM-KLingAI-API: WEB_DIRECTORY设置为: {WEB_DIRECTORY}")
+
+# 检查js目录是否存在
+if os.path.exists(WEB_DIRECTORY):
+    js_files = os.listdir(WEB_DIRECTORY)
+    print(f"JM-KLingAI-API: js目录存在，包含文件: {js_files}")
+else:
+    print(f"JM-KLingAI-API: 警告! js目录不存在: {WEB_DIRECTORY}")
+    # 尝试创建
+    try:
+        os.makedirs(WEB_DIRECTORY, exist_ok=True)
+        print(f"JM-KLingAI-API: 已创建js目录: {WEB_DIRECTORY}")
+    except Exception as e:
+        print(f"JM-KLingAI-API: 创建js目录失败: {str(e)}")
 
 NODE_CLASS_MAPPINGS = {
     "JM-KLingAI-API/api-key": KLingAIAPIKey,
@@ -47,3 +61,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
 # 确保正确导出WEB_DIRECTORY
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
+
+print(f"JM-KLingAI-API: 插件初始化完成，导出变量: {__all__}")

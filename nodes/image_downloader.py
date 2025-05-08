@@ -27,6 +27,8 @@ class KLingAIImageDownloader:
         self.output_dir = self.default_output_dir
         self.prefix = "KLingAI"
         self.last_downloaded_image = None
+        self.last_image_path = None
+        self.preview_available = False  # 标记预览是否可用
         print(f"初始化KLingAIImageDownloader，输出目录: {self.default_output_dir}")
 
     @classmethod
@@ -180,11 +182,18 @@ class KLingAIImageDownloader:
             # 为了确保在历史记录中显示，创建预览信息
             self.save_image_preview_info(filepath)
             
+            # 存储当前图像路径，用于JavaScript扩展中的预览
+            self.last_image_path = rel_filepath
+            self.preview_available = True
+            
             # 加载图片并转换为ComfyUI可用的格式
             try:
                 # 打开图片并转换为RGB
                 pil_image = Image.open(filepath).convert('RGB')
                 print(f"图片尺寸: {pil_image.width}x{pil_image.height}")
+                
+                # 存储最后下载的图像以便在UI中显示
+                self.last_downloaded_image = pil_image
                 
                 # 转换为numpy数组，并规范化到0-1范围
                 image_array = np.array(pil_image).astype(np.float32) / 255.0
@@ -193,16 +202,13 @@ class KLingAIImageDownloader:
                 image_tensor = torch.from_numpy(image_array)[None,]
                 print(f"转换为PyTorch张量，形状: {image_tensor.shape}")
                 
-                # 存储最后下载的图像以便在UI中显示
-                self.last_downloaded_image = pil_image
-                
                 print(f"成功加载图片，准备返回 - 张量形状: {image_tensor.shape}")
                 return (image_tensor, rel_filepath, image_url)
             except Exception as e:
                 print(f"图片加载错误: {str(e)}")
                 # 创建小的空白图像
                 empty_tensor = torch.zeros((1, 64, 64, 3), dtype=torch.float32)
-                return (empty_tensor, filepath, image_url)
+                return (empty_tensor, rel_filepath, image_url)
 
         except ValueError as ve:
             error_msg = f"参数错误: {str(ve)}"

@@ -57,15 +57,44 @@ Before using this node, you need to have [a KLing AI API key](https://app.klinga
 - <font style="color:rgb(31, 35, 40);">Support for both kling-v1 and kling-v1-5 models</font>
   
 ### <font style="color:rgb(31, 35, 40);">KLingAI Image Downloader</font>
-<font style="color:rgb(31, 35, 40);">This node downloads images from a URL and saves them to a local directory.</font>
 
-<font style="color:rgb(31, 35, 40);">Features:</font>
-- <font style="color:rgb(31, 35, 40);">Downloads images from a given URL</font>
-- <font style="color:rgb(31, 35, 40);">Saves images with customizable filename prefixes</font>
-- <font style="color:rgb(31, 35, 40);">Supports PNG, JPG, JPEG, and WebP formats</font>
-- <font style="color:rgb(31, 35, 40);">Automatically detects image format from URL</font>
-- <font style="color:rgb(31, 35, 40);">Optional custom output directory</font>
-- <font style="color:rgb(31, 35, 40);">Returns the saved image path, original URL, and loaded image for further processing</font>
+该节点用于从URL下载图片并保存到本地。
+
+### 功能特点
+
+- 支持从URL直接下载图片
+- 自动保存到ComfyUI输出目录
+- 支持自定义输出子目录
+- 自动生成序列文件名（如 KLingAI_0001.png）
+- **内置图片预览功能**，无需连接预览节点
+
+### 输入参数
+
+- `image_url` (必填): 图片的URL地址
+- `filename_prefix` (必填): 图片文件名前缀，默认为 "KLingAI"
+- `custom_output_dir` (可选): 自定义输出子目录，相对于ComfyUI输出目录
+
+### 输出
+
+- `IMAGE`: 下载的图片，可用于后续处理
+- `image_path`: 图片在输出目录中的相对路径
+- `image_url`: 原始图片URL
+
+### 使用示例
+
+1. 在ComfyUI中添加KLingAI Image Downloader节点
+2. 输入图片URL和可选的文件名前缀
+3. 运行工作流，图片将被下载并显示在节点中
+4. 下载的图片将保存到ComfyUI的输出目录
+
+### 故障排除
+
+如果节点无法显示预览图片，请检查:
+
+1. 浏览器控制台是否有JavaScript错误
+2. 图片URL是否可访问
+3. ComfyUI是否有权限访问输出目录
+4. 重启ComfyUI服务器尝试重新加载扩展
 
 ### <font style="color:rgb(31, 35, 40);">KLingAI Video Downloader</font>
 <font style="color:rgb(31, 35, 40);">This node downloads videos from a URL and saves them to a local directory.</font>
