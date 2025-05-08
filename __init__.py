@@ -11,8 +11,8 @@ from .nodes.image_downloader import KLingAIImageDownloader
 from .nodes.hybrid_video import KLingAIHybridVideo
 import os
 
-# 添加WEB_DIRECTORY变量，指向JavaScript扩展目录
-WEB_DIRECTORY = os.path.join(os.path.dirname(os.path.realpath(__file__)), "web")
+# 指向根目录下的js目录（这是 ComfyUI 期望的路径）
+WEB_DIRECTORY = os.path.join(os.path.dirname(os.path.realpath(__file__)), "js")
 
 NODE_CLASS_MAPPINGS = {
     "JM-KLingAI-API/api-key": KLingAIAPIKey,
