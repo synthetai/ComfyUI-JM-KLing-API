@@ -27,6 +27,7 @@ class KLingAIImageDownloader:
         self.output_dir = self.default_output_dir
         self.prefix = "KLingAI"
         self.last_downloaded_image = None
+        print(f"初始化KLingAIImageDownloader，输出目录: {self.default_output_dir}")
 
     @classmethod
     def INPUT_TYPES(s):
@@ -109,6 +110,8 @@ class KLingAIImageDownloader:
         Download image from URL and save to local directory
         """
         try:
+            print(f"开始执行下载图片流程，URL: {image_url}")
+
             # 在实际执行时验证输入
             if image_url is None or (isinstance(image_url, str) and not image_url.strip()):
                 error_msg = "图片URL不能为空"
@@ -119,6 +122,7 @@ class KLingAIImageDownloader:
                 
             if not filename_prefix:
                 filename_prefix = "KLingAI"
+                print(f"使用默认文件名前缀: {filename_prefix}")
 
             # 确定输出目录，如果指定了自定义目录，确保是output目录的子目录
             output_dir = self.default_output_dir
@@ -141,6 +145,7 @@ class KLingAIImageDownloader:
 
             # 获取下一个序列号
             seq_num = self.get_next_sequence_number(output_dir, filename_prefix)
+            print(f"使用序列号: {seq_num:04d}")
 
             # 检测图片格式
             image_format = "png"  # 默认格式
@@ -148,10 +153,12 @@ class KLingAIImageDownloader:
                 image_format = "jpg"
             elif ".webp" in image_url.lower():
                 image_format = "webp"
+            print(f"检测到的图片格式: {image_format}")
 
             # 创建文件名，格式为 prefix_0001.png
             filename = f"{filename_prefix}_{seq_num:04d}.{image_format}"
             filepath = os.path.join(output_dir, filename)
+            print(f"将保存为: {filepath}")
 
             # 下载图片
             print(f"正在从 {image_url} 下载图片")
@@ -166,6 +173,10 @@ class KLingAIImageDownloader:
 
             print(f"图片成功下载到: {filepath}")
             
+            # 获取相对路径（相对于output目录）
+            rel_filepath = os.path.relpath(filepath, start=self.default_output_dir)
+            print(f"图片相对路径: {rel_filepath}")
+            
             # 为了确保在历史记录中显示，创建预览信息
             self.save_image_preview_info(filepath)
             
@@ -173,16 +184,20 @@ class KLingAIImageDownloader:
             try:
                 # 打开图片并转换为RGB
                 pil_image = Image.open(filepath).convert('RGB')
+                print(f"图片尺寸: {pil_image.width}x{pil_image.height}")
+                
                 # 转换为numpy数组，并规范化到0-1范围
                 image_array = np.array(pil_image).astype(np.float32) / 255.0
+                
                 # 转换为PyTorch张量
                 image_tensor = torch.from_numpy(image_array)[None,]
+                print(f"转换为PyTorch张量，形状: {image_tensor.shape}")
                 
                 # 存储最后下载的图像以便在UI中显示
                 self.last_downloaded_image = pil_image
                 
-                print(f"成功加载图片，尺寸: {pil_image.width}x{pil_image.height}")
-                return (image_tensor, filepath, image_url)
+                print(f"成功加载图片，准备返回 - 张量形状: {image_tensor.shape}")
+                return (image_tensor, rel_filepath, image_url)
             except Exception as e:
                 print(f"图片加载错误: {str(e)}")
                 # 创建小的空白图像
