@@ -41,3 +41,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "JM-KLingAI-API/image-downloader": "KLingAI Image Downloader",
     "JM-KLingAI-API/hybrid-video": "KLingAI 混合视频生成"
 }
+
+# 确保正确导出WEB_DIRECTORY
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
