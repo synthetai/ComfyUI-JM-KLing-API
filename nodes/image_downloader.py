@@ -9,6 +9,8 @@ import json
 import torch
 import numpy as np
 from PIL import Image
+import base64
+from io import BytesIO
 
 
 class KLingAIImageDownloader:
@@ -20,6 +22,7 @@ class KLingAIImageDownloader:
     def __init__(self):
         self.default_output_dir = folder_paths.get_output_directory()
         self.type = "image"
+        self.preview_image = None
 
     @classmethod
     def INPUT_TYPES(s):
@@ -31,6 +34,8 @@ class KLingAIImageDownloader:
                     "multiline": False,
                     "placeholder": "Base filename for downloaded image"
                 }),
+                "preview_image": ("STRING", {"default": "#NULL", "multiline": False}),
+                "image_data": ("STRING", {"default": "", "multiline": False}),
             },
             "optional": {
                 "custom_output_dir": ("STRING", {
@@ -38,15 +43,19 @@ class KLingAIImageDownloader:
                     "multiline": False,
                     "placeholder": "Optional: Custom output directory path"
                 }),
+            },
+            "hidden": {
+                "image_data_hidden": ("STRING", {"default": "", "multiline": False}),
+                "node_id": ("STRING", {"default": ""}),
             }
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "IMAGE")
-    RETURN_NAMES = ("image_path", "image_url", "image")
+    RETURN_TYPES = ("STRING", "STRING", "IMAGE", "STRING")
+    RETURN_NAMES = ("image_path", "image_url", "image", "image_data")
     FUNCTION = "download_image"
     CATEGORY = "JM-KLingAI-API"
     OUTPUT_NODE = True  # 标记为可作为终端节点的节点
-    OUTPUT_IS_LIST = (False, False, False)  # 指示输出不是列表
+    OUTPUT_IS_LIST = (False, False, False, False)  # 指示输出不是列表
 
     def get_next_sequence_number(self, directory, filename_prefix):
         """
@@ -82,8 +91,20 @@ class KLingAIImageDownloader:
         """
         Path(directory).mkdir(parents=True, exist_ok=True)
         return directory
+    
+    def image_to_base64(self, pil_image):
+        """
+        将PIL图像转换为base64字符串
+        """
+        if pil_image is None:
+            return ""
+        
+        buffered = BytesIO()
+        pil_image.save(buffered, format="JPEG")
+        img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        return f"data:image/jpeg;base64,{img_str}"
 
-    def download_image(self, image_url, filename_prefix="KLingAI", custom_output_dir=""):
+    def download_image(self, image_url, filename_prefix="KLingAI", preview_image="#NULL", image_data="", custom_output_dir="", image_data_hidden="", node_id=""):
         """
         Download image from URL and save to local directory
         """
@@ -92,7 +113,7 @@ class KLingAIImageDownloader:
             if image_url is None or (isinstance(image_url, str) and not image_url.strip()):
                 error_msg = "图片URL不能为空"
                 print(error_msg)
-                return (error_msg, image_url, None)
+                return (error_msg, image_url, None, "")
                 
             if not filename_prefix:
                 filename_prefix = "KLingAI"
@@ -140,24 +161,27 @@ class KLingAIImageDownloader:
                 # 转换为PyTorch张量
                 image_tensor = torch.from_numpy(image_array)[None,]
                 
+                # 生成base64编码的图像数据用于预览
+                image_data_base64 = self.image_to_base64(pil_image)
+                
                 print(f"成功加载图片，尺寸: {pil_image.width}x{pil_image.height}")
-                return (filepath, image_url, image_tensor)
+                return (filepath, image_url, image_tensor, image_data_base64)
             except Exception as e:
                 print(f"图片加载错误: {str(e)}")
-                return (filepath, image_url, None)
+                return (filepath, image_url, None, "")
 
         except ValueError as ve:
             error_msg = f"参数错误: {str(ve)}"
             print(error_msg)
-            return (error_msg, image_url, None)  # 返回错误消息而不是None
+            return (error_msg, image_url, None, "")  # 返回错误消息而不是None
         except requests.exceptions.RequestException as re:
             error_msg = f"下载错误: {str(re)}"
             print(error_msg)
-            return (error_msg, image_url, None)  # 返回错误消息而不是None
+            return (error_msg, image_url, None, "")  # 返回错误消息而不是None
         except Exception as e:
             error_msg = f"图片下载错误: {str(e)}"
             print(error_msg)
-            return (error_msg, image_url, None)  # 返回错误消息而不是None
+            return (error_msg, image_url, None, "")  # 返回错误消息而不是None
 
     def save_image_preview_info(self, filepath):
         """
@@ -204,6 +228,6 @@ class KLingAIImageDownloader:
 
     # 确保节点可以在没有连接的情况下运行
     @classmethod
-    def IS_CHANGED(cls, image_url, filename_prefix="KLingAI", custom_output_dir=""):
+    def IS_CHANGED(cls, image_url, filename_prefix="KLingAI", preview_image="#NULL", image_data="", custom_output_dir="", image_data_hidden="", node_id=""):
         # 返回当前时间，确保节点总是执行
         return time.time() 
