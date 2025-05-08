@@ -12,9 +12,10 @@ from .nodes.hybrid_video import KLingAIHybridVideo
 import os
 import folder_paths
 
-# ComfyUI期望的WEB_DIRECTORY路径应指向此扩展的根目录
+# 设置WEB_DIRECTORY指向扩展的根目录
+# ComfyUI会自动查找js子目录
 WEB_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
-print(f"设置WEB_DIRECTORY为: {WEB_DIRECTORY}")
+print(f"JM-KLingAI-API: WEB_DIRECTORY设置为: {WEB_DIRECTORY}")
 
 NODE_CLASS_MAPPINGS = {
     "JM-KLingAI-API/api-key": KLingAIAPIKey,
