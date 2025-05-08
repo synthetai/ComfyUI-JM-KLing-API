@@ -89,6 +89,31 @@ app.registerExtension({
             // 创建预览图像对象
             this._preview_image = new Image();
             this._preview_path = null;
+            
+            // 检查是否有image_data小部件，如果没有则创建一个隐藏的
+            let image_data_widget = this.widgets.find(w => w.name === "image_data");
+            if (!image_data_widget) {
+                image_data_widget = this.addWidget("text", "image_data", "", null);
+                image_data_widget.hidden = true;
+                logDebug("创建隐藏的image_data小部件");
+            } else {
+                logDebug("找到现有的image_data小部件");
+            }
+            
+            // 保存对image_data小部件的引用
+            this._image_data_widget = image_data_widget;
+            
+            // 设置图像加载事件处理
+            this._preview_image.onload = () => {
+                logDebug(`图像加载成功: ${this._preview_image.width}x${this._preview_image.height}`);
+                this.setDirtyCanvas(true, true);
+            };
+            
+            this._preview_image.onerror = (err) => {
+                logDebug(`图像加载失败`);
+                logDetailedDebug("加载错误:", err);
+            };
+            
             logDebug("创建预览图像对象");
             
             // 使节点可序列化
@@ -145,62 +170,87 @@ app.registerExtension({
             ctx.strokeRect(previewX, previewY, previewWidth, previewHeight);
             logDebug("绘制预览区域背景");
             
-            // 如果有预览图像且已加载完成
-            if (this._preview_image && this._preview_image.complete && this._preview_image.width > 0) {
-                logDebug(`有预览图像: ${this._preview_image.width}x${this._preview_image.height}`);
-                try {
-                    // 计算图像显示大小，保持比例
-                    const img = this._preview_image;
-                    const imgRatio = img.width / img.height;
-                    let drawWidth, drawHeight;
-                    
-                    if (imgRatio > previewWidth / previewHeight) {
-                        // 图像较宽，以宽度为限
-                        drawWidth = previewWidth - 10;
-                        drawHeight = drawWidth / imgRatio;
-                        logDebug(`图像较宽，调整为 ${drawWidth}x${drawHeight}`);
-                    } else {
-                        // 图像较高，以高度为限
-                        drawHeight = previewHeight - 10;
-                        drawWidth = drawHeight * imgRatio;
-                        logDebug(`图像较高，调整为 ${drawWidth}x${drawHeight}`);
+            // 获取image_data小部件中的值
+            const imageData = this._image_data_widget ? this._image_data_widget.value : "";
+            
+            // 如果有图像数据，则加载并显示
+            if (imageData && imageData !== "") {
+                logDebug("从image_data小部件获取到数据");
+                
+                // 如果图像源不是当前的数据，则更新
+                if (this._preview_image.src !== imageData) {
+                    logDebug("更新预览图像源");
+                    this._preview_image.src = imageData;
+                }
+                
+                // 如果有预览图像且已加载完成
+                if (this._preview_image && this._preview_image.complete && this._preview_image.width > 0) {
+                    logDebug(`有预览图像: ${this._preview_image.width}x${this._preview_image.height}`);
+                    try {
+                        // 计算图像显示大小，保持比例
+                        const img = this._preview_image;
+                        const imgRatio = img.width / img.height;
+                        let drawWidth, drawHeight;
+                        
+                        if (imgRatio > previewWidth / previewHeight) {
+                            // 图像较宽，以宽度为限
+                            drawWidth = previewWidth - 10;
+                            drawHeight = drawWidth / imgRatio;
+                            logDebug(`图像较宽，调整为 ${drawWidth}x${drawHeight}`);
+                        } else {
+                            // 图像较高，以高度为限
+                            drawHeight = previewHeight - 10;
+                            drawWidth = drawHeight * imgRatio;
+                            logDebug(`图像较高，调整为 ${drawWidth}x${drawHeight}`);
+                        }
+                        
+                        // 计算居中位置
+                        const drawX = previewX + (previewWidth - drawWidth) / 2;
+                        const drawY = previewY + (previewHeight - drawHeight) / 2;
+                        logDebug(`绘制位置: x=${drawX}, y=${drawY}`);
+                        
+                        // 绘制预览图像
+                        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+                        logDebug("绘制预览图像完成");
+                        
+                        // 显示图像尺寸
+                        ctx.fillStyle = "#ffffff";
+                        ctx.font = "12px Arial";
+                        ctx.textAlign = "left";
+                        ctx.fillText(`${img.naturalWidth}x${img.naturalHeight}`, 
+                                   previewX + 5, previewY + previewHeight - 5);
+                        logDebug("绘制图像尺寸信息");
+                    } catch (error) {
+                        logDebug(`绘制图像错误: ${error.message}`);
+                        // 显示错误信息
+                        ctx.fillStyle = "#ff5555";
+                        ctx.font = "12px Arial";
+                        ctx.textAlign = "center";
+                        ctx.fillText("图像加载或绘制出错", 
+                                   previewX + previewWidth/2, previewY + previewHeight/2);
+                        ctx.textAlign = "left";
+                    }
+                } else {
+                    logDebug("无预览图像或图像未加载完成");
+                    if (this._preview_image) {
+                        logDetailedDebug("预览图像状态:", {
+                            complete: this._preview_image.complete,
+                            width: this._preview_image.width,
+                            src: this._preview_image.src ? this._preview_image.src.substring(0, 50) + "..." : ""
+                        });
                     }
                     
-                    // 计算居中位置
-                    const drawX = previewX + (previewWidth - drawWidth) / 2;
-                    const drawY = previewY + (previewHeight - drawHeight) / 2;
-                    logDebug(`绘制位置: x=${drawX}, y=${drawY}`);
-                    
-                    // 绘制预览图像
-                    ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-                    logDebug("绘制预览图像完成");
-                    
-                    // 显示图像尺寸
-                    ctx.fillStyle = "#ffffff";
-                    ctx.font = "12px Arial";
-                    ctx.textAlign = "left";
-                    ctx.fillText(`${img.naturalWidth}x${img.naturalHeight}`, 
-                               previewX + 5, previewY + previewHeight - 5);
-                    logDebug("绘制图像尺寸信息");
-                } catch (error) {
-                    logDebug(`绘制图像错误: ${error.message}`);
-                    // 显示错误信息
-                    ctx.fillStyle = "#ff5555";
-                    ctx.font = "12px Arial";
+                    // 没有图像时显示提示
+                    ctx.fillStyle = "#aaaaaa";
+                    ctx.font = "14px Arial";
                     ctx.textAlign = "center";
-                    ctx.fillText("图像加载或绘制出错", 
-                               previewX + previewWidth/2, previewY + previewHeight/2);
+                    ctx.fillText("图片正在加载...", 
+                              previewX + previewWidth/2, previewY + previewHeight/2);
                     ctx.textAlign = "left";
+                    logDebug("绘制加载提示文本");
                 }
             } else {
-                logDebug("无预览图像或图像未加载完成");
-                if (this._preview_image) {
-                    logDetailedDebug("预览图像状态:", {
-                        complete: this._preview_image.complete,
-                        width: this._preview_image.width,
-                        src: this._preview_image.src
-                    });
-                }
+                logDebug("无图像数据");
                 
                 // 没有图像时显示提示
                 ctx.fillStyle = "#aaaaaa";
@@ -242,50 +292,53 @@ app.registerExtension({
             // 输出消息
             logDetailedDebug("输出消息:", message.outputs);
             
-            // 检查是否有图像路径输出
-            const imagePath = message.outputs.image_path;
-            if (!imagePath || typeof imagePath !== "string") {
-                logDebug("无效的图像路径");
-                return;
-            }
-            
-            logDebug(`获取到图像路径: ${imagePath}`);
-            
-            // 如果路径无效或与上次相同，则不重新加载
-            if (imagePath.startsWith("错误:") || imagePath === this._preview_path) {
-                logDebug("图像路径无效或与上次相同");
-                return;
-            }
-            
-            this._preview_path = imagePath;
-            logDebug(`设置新的预览路径: ${this._preview_path}`);
-            
-            // 创建正确的预览URL
-            const previewUrl = `/view?filename=${encodeURIComponent(imagePath)}&ts=${Date.now()}`;
-            logDebug(`预览URL: ${previewUrl}`);
-            
-            // 设置图像加载事件
-            this._preview_image.onload = () => {
-                logDebug(`图像加载成功: ${this._preview_image.width}x${this._preview_image.height}`);
+            // 检查是否有图像数据输出
+            const imageData = message.outputs.image_data;
+            if (imageData && typeof imageData === "string" && imageData !== "") {
+                logDebug("发现image_data输出");
+                
+                // 更新image_data小部件
+                if (this._image_data_widget) {
+                    this._image_data_widget.value = imageData;
+                    logDebug("已更新image_data小部件");
+                } else {
+                    logDebug("没有找到image_data小部件");
+                }
+                
+                // 强制请求重绘
                 this.setDirtyCanvas(true, true);
-            };
-            
-            this._preview_image.onerror = (err) => {
-                logDebug(`图像加载失败`);
-                logDetailedDebug("加载错误:", err);
-                // 尝试使用备选URL加载
-                const alternativeUrl = `/output/${encodeURIComponent(imagePath)}?ts=${Date.now()}`;
-                logDebug(`尝试备选URL: ${alternativeUrl}`);
-                this._preview_image.src = alternativeUrl;
-            };
-            
-            // 加载图像
-            this._preview_image.src = previewUrl;
-            logDebug(`开始加载图像: ${this._preview_image.src}`);
-            
-            // 强制请求重绘
-            this.setDirtyCanvas(true, true);
-            logDebug("请求画布更新");
+                logDebug("请求画布更新");
+            } else {
+                // 检查是否有图像路径输出
+                const imagePath = message.outputs.image_path;
+                if (!imagePath || typeof imagePath !== "string") {
+                    logDebug("无效的图像路径或数据");
+                    return;
+                }
+                
+                logDebug(`获取到图像路径: ${imagePath}`);
+                
+                // 如果路径无效或与上次相同，则不重新加载
+                if (imagePath.startsWith("错误:") || imagePath === this._preview_path) {
+                    logDebug("图像路径无效或与上次相同");
+                    return;
+                }
+                
+                this._preview_path = imagePath;
+                logDebug(`设置新的预览路径: ${this._preview_path}`);
+                
+                // 创建正确的预览URL
+                const previewUrl = `/view?filename=${encodeURIComponent(imagePath)}&ts=${Date.now()}`;
+                logDebug(`预览URL: ${previewUrl}`);
+                
+                // 加载图像
+                this._preview_image.src = previewUrl;
+                logDebug(`开始加载图像: ${this._preview_image.src}`);
+                
+                // 强制请求重绘
+                this.setDirtyCanvas(true, true);
+                logDebug("请求画布更新");
+            }
         };
     }
 });
