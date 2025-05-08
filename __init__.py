@@ -9,6 +9,10 @@ from .nodes.lip_sync_async import KLingAILipSyncAsync
 from .nodes.image_generation import KLingAIImageGeneration
 from .nodes.image_downloader import KLingAIImageDownloader
 from .nodes.hybrid_video import KLingAIHybridVideo
+import os
+
+# 添加WEB_DIRECTORY变量，指向JavaScript扩展目录
+WEB_DIRECTORY = os.path.join(os.path.dirname(os.path.realpath(__file__)), "web")
 
 NODE_CLASS_MAPPINGS = {
     "JM-KLingAI-API/api-key": KLingAIAPIKey,

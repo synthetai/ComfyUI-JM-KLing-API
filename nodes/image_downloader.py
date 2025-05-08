@@ -6,6 +6,9 @@ from pathlib import Path
 import folder_paths
 import time
 import json
+import torch
+import numpy as np
+from PIL import Image
 
 
 class KLingAIImageDownloader:
@@ -130,15 +133,12 @@ class KLingAIImageDownloader:
             
             # 加载图片并转换为ComfyUI可用的格式
             try:
-                import numpy as np
-                from PIL import Image
-                
                 # 打开图片并转换为RGB
                 pil_image = Image.open(filepath).convert('RGB')
                 # 转换为numpy数组，并规范化到0-1范围
                 image_array = np.array(pil_image).astype(np.float32) / 255.0
-                # 转换为[1, H, W, 3]格式，ComfyUI使用的格式
-                image_tensor = image_array[np.newaxis, ...]
+                # 转换为PyTorch张量
+                image_tensor = torch.from_numpy(image_array)[None,]
                 
                 print(f"成功加载图片，尺寸: {pil_image.width}x{pil_image.height}")
                 return (filepath, image_url, image_tensor)
