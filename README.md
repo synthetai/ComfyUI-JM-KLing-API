@@ -66,7 +66,6 @@ Before using this node, you need to have [a KLing AI API key](https://app.klinga
 - 自动保存到ComfyUI输出目录
 - 支持自定义输出子目录
 - 自动生成序列文件名（如 KLingAI_0001.png）
-- **内置图片预览功能**，无需连接预览节点
 
 ### 输入参数
 
@@ -84,17 +83,8 @@ Before using this node, you need to have [a KLing AI API key](https://app.klinga
 
 1. 在ComfyUI中添加KLingAI Image Downloader节点
 2. 输入图片URL和可选的文件名前缀
-3. 运行工作流，图片将被下载并显示在节点中
-4. 下载的图片将保存到ComfyUI的输出目录
-
-### 故障排除
-
-如果节点无法显示预览图片，请检查:
-
-1. 浏览器控制台是否有JavaScript错误
-2. 图片URL是否可访问
-3. ComfyUI是否有权限访问输出目录
-4. 重启ComfyUI服务器尝试重新加载扩展
+3. 运行工作流，图片将被下载并保存
+4. 使用ComfyUI的预览节点查看下载的图片
 
 ### <font style="color:rgb(31, 35, 40);">KLingAI Video Downloader</font>
 <font style="color:rgb(31, 35, 40);">This node downloads videos from a URL and saves them to a local directory.</font>
