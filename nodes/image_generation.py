@@ -40,7 +40,7 @@ class KLingAIImageGeneration:
                     "placeholder": "参考图片URL地址"
                 }),
                 "image_reference": (["subject", "face"], {"default": "subject"}),
-                "model_name": (["kling-v1", "kling-v1-5"], {"default": "kling-v1"}),
+                "model_name": (["kling-v1", "kling-v1-5", "kling-v2"], {"default": "kling-v1"}),
                 "negative_prompt": ("STRING", {
                     "default": "",
                     "multiline": True,
