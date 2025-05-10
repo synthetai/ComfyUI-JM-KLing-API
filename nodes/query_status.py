@@ -68,9 +68,9 @@ class KLingAIQueryStatus:
     FUNCTION = "query_task_status"
     CATEGORY = "JM-KLingAI-API"
 
-    def poll_status(self, api_token, task_id, external_task_id, task_type="auto", initial_delay_seconds=10, poll_interval_seconds=10):
+    def poll_status(self, api_token, task_id, external_task_id, task_type="auto", initial_delay_seconds=10, poll_interval_seconds=10, max_retries=10):
         """
-        轮询任务状态直到完成
+        轮询任务状态直到完成，增加最大重试次数max_retries，超过则失败
         """
         headers = {
             "Content-Type": "application/json",
@@ -125,8 +125,13 @@ class KLingAIQueryStatus:
             
         # 记录最后找到的有效端点
         valid_endpoint = None
+        retry_count = 0
 
         while not self.stop_thread.is_set():
+            if retry_count >= max_retries:
+                error_msg = f"超过最大重试次数({max_retries})，任务查询失败停止。"
+                print(error_msg)
+                return (error_msg, "")
             success = False
             
             # 如果上一次查询找到了有效端点，只使用该端点
@@ -308,6 +313,9 @@ class KLingAIQueryStatus:
                     print(error_msg)
                     return (error_msg, "")
                 print("所有端点查询失败，稍后将重试...")
+                retry_count += 1
+            else:
+                retry_count = 0  # 只要有一次成功就重置重试计数
             
             # 按照配置的时间间隔等待再次查询
             print(f"等待 {poll_interval_seconds} 秒后再次查询...")
