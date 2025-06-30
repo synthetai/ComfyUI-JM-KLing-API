@@ -33,7 +33,7 @@ class KLingAIImage2Video:
                     "multiline": False,
                     "placeholder": "图片URL地址"
                 }),
-                "model_name": (["kling-v1", "kling-v1-5", "kling-v1-6", "kling-v2-master"], {"default": "kling-v1"}),
+                "model_name": (["kling-v1", "kling-v1-5", "kling-v1-6", "kling-v2-master", "kling-v2-1", "kling-v2-1-master"], {"default": "kling-v1-6"}),
                 "positive_prompt": ("STRING", {
                     "default": "", 
                     "multiline": True,
