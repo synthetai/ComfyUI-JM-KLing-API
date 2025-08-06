@@ -202,32 +202,32 @@ class KLingAIMultiImage2Video:
             if seed == -1:
                 seed = random.randint(0, 0xffffffffffffffff)
 
-            # 准备图片列表
+            # 准备图片列表，按照官方API格式
             image_list = []
             
             # 转换图片1为base64
             image1_base64 = self.image_to_base64(image1)
             if not image1_base64:
                 raise ValueError("图片1转换为base64失败")
-            image_list.append(image1_base64)
+            image_list.append({"image": image1_base64})
             
             # 转换图片2为base64（如果提供）
             if image2 is not None:
                 image2_base64 = self.image_to_base64(image2)
                 if image2_base64:
-                    image_list.append(image2_base64)
+                    image_list.append({"image": image2_base64})
             
             # 转换图片3为base64（如果提供）
             if image3 is not None:
                 image3_base64 = self.image_to_base64(image3)
                 if image3_base64:
-                    image_list.append(image3_base64)
+                    image_list.append({"image": image3_base64})
             
             # 转换图片4为base64（如果提供）
             if image4 is not None:
                 image4_base64 = self.image_to_base64(image4)
                 if image4_base64:
-                    image_list.append(image4_base64)
+                    image_list.append({"image": image4_base64})
             
             # 验证图片数量
             if len(image_list) > 4:
@@ -239,10 +239,10 @@ class KLingAIMultiImage2Video:
                 "Authorization": f"Bearer {api_token.strip()}"
             }
 
-            # 准备请求体
+            # 准备请求体，按照官方API文档格式
             payload = {
                 "model_name": model_name,
-                "image_list": image_list,
+                "image_list": image_list,  # 使用官方文档中的参数名
                 "prompt": prompt,
                 "mode": mode,
                 "duration": duration,
@@ -262,6 +262,7 @@ class KLingAIMultiImage2Video:
             print(f"正在发送请求到: {url}")
             print(f"使用本地种子: {seed} (仅用于本地，未发送给API)")
             print(f"提供的图片数量: {len(image_list)}")
+            print(f"请求体大小: {len(str(payload))} 字符")
             
             response = requests.post(url, headers=headers, json=payload)
             response_data = response.json()
@@ -297,6 +298,6 @@ class KLingAIMultiImage2Video:
             return (f"错误: {str(e)}", "failed", "", "", seed)
 
     @classmethod
-    def IS_CHANGED(cls, image, prompt, negative_prompt, callback_selection, output_format, fps, model_selection, seed):
+    def IS_CHANGED(cls, **kwargs):
         # Always refresh this node
         return time.time() 
