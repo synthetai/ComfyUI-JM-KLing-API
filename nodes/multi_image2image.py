@@ -10,7 +10,7 @@ import numpy as np
 from PIL import Image
 import torch
 
-from .api_key import APIKey
+
 
 class KLingAIMultiImage2Image:
     """
@@ -182,10 +182,7 @@ class KLingAIMultiImage2Image:
         try:
             # 验证API token
             if not api_token or not api_token.strip():
-                api_key_node = APIKey()
-                api_token = api_key_node.get_api_key()
-                if not api_token:
-                    raise ValueError("API Token不能为空，请在节点中输入或在API Key节点中设置")
+                raise ValueError("API Token不能为空，请在节点中输入")
             
             # 生成随机种子（本地使用，不发送给API）
             if seed == -1:
