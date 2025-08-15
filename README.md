@@ -96,6 +96,28 @@ Before using this node, you need to have [a KLing AI API key](https://app.klinga
 - <font style="color:rgb(31, 35, 40);">Optional custom output directory</font>
 - <font style="color:rgb(31, 35, 40);">Returns the saved video path and original URL for further processing</font>
 
+### <font style="color:rgb(31, 35, 40);">KLingAI Multi-Image to Image</font>
+<font style="color:rgb(31, 35, 40);">这个节点使用可灵AI的多图参考生图API，支持使用2-4张图片作为主体参考来生成新图片。</font>
+
+<font style="color:rgb(31, 35, 40);">功能特点:</font>
+- <font style="color:rgb(31, 35, 40);">支持2-4张主体参考图片（必需）</font>
+- <font style="color:rgb(31, 35, 40);">可选场景参考图和风格参考图</font>
+- <font style="color:rgb(31, 35, 40);">支持文本提示词优化生成效果</font>
+- <font style="color:rgb(31, 35, 40);">可生成1-9张图片</font>
+- <font style="color:rgb(31, 35, 40);">多种画面比例选择</font>
+- <font style="color:rgb(31, 35, 40);">支持自定义输出目录和文件名前缀</font>
+- <font style="color:rgb(31, 35, 40);">内置图片预览功能</font>
+- <font style="color:rgb(31, 35, 40);">支持随机种子控制</font>
+
+<font style="color:rgb(31, 35, 40);">输入参数:</font>
+- <font style="color:rgb(31, 35, 40);">主体图片1-2（必需）</font>
+- <font style="color:rgb(31, 35, 40);">主体图片3-4（可选）</font>
+- <font style="color:rgb(31, 35, 40);">场景参考图（可选）</font>
+- <font style="color:rgb(31, 35, 40);">风格参考图（可选）</font>
+- <font style="color:rgb(31, 35, 40);">文本提示词</font>
+- <font style="color:rgb(31, 35, 40);">输出文件名前缀和目录</font>
+- <font style="color:rgb(31, 35, 40);">生成数量、画面比例、随机种子</font>
+
 ### <font style="color:rgb(31, 35, 40);">KLingAI 混合视频生成</font>
 <font style="color:rgb(31, 35, 40);">这是一个融合了文生视频和图生视频功能的节点，能够根据用户输入自动选择合适的API。</font>
 
