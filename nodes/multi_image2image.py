@@ -267,7 +267,8 @@ class KLingAIMultiImage2Image:
             print(f"使用本地种子: {seed} (仅用于本地，未发送给API)")
             
             # 调试：打印请求的详细信息（隐藏base64数据）
-            debug_payload = payload.copy()
+            import copy
+            debug_payload = copy.deepcopy(payload)  # 使用深拷贝
             for i, img_item in enumerate(debug_payload.get("subject_image_list", [])):
                 if "subject_image" in img_item:
                     debug_payload["subject_image_list"][i]["subject_image"] = f"[BASE64_IMAGE_{i+1}]"
