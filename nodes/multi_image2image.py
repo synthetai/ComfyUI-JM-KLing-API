@@ -4,6 +4,7 @@ import time
 import random
 import requests
 import folder_paths
+import io
 from io import BytesIO
 import base64
 import numpy as np
@@ -96,92 +97,42 @@ class KLingAIMultiImage2Image:
         return time.time()
     
     def tensor_to_pil(self, tensor):
-        """将ComfyUI的张量转换为PIL图像"""
-        # 确保张量是正确的形状 [H, W, C]
+        """将ComfyUI的Tensor图像转换为PIL图像（与image_generation.py保持一致）"""
+        if tensor is None:
+            return None
+            
+        # 确保是一个单一的图像，不是批次
         if len(tensor.shape) == 4:
-            tensor = tensor.squeeze(0)  # 移除批次维度
-        
-        # 转换为numpy数组并缩放到0-255
-        numpy_image = tensor.cpu().numpy()
-        if numpy_image.max() <= 1.0:
-            numpy_image = (numpy_image * 255).astype(np.uint8)
-        else:
-            numpy_image = numpy_image.astype(np.uint8)
-        
-        # 转换为PIL图像
-        return Image.fromarray(numpy_image)
+            tensor = tensor[0]
+            
+        # 转换为适合PIL的格式
+        i = 255. * tensor.cpu().numpy()
+        img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
+        return img
     
-    def image_to_base64(self, image_tensor):
-        """将图像张量转换为base64字符串"""
+    def image_to_base64(self, image):
+        """将ComfyUI图像转换为base64字符串（与image_generation.py保持一致）"""
+        if image is None:
+            return None
+            
         try:
-            # 转换为PIL图像
-            pil_image = self.tensor_to_pil(image_tensor)
-            
-            # 转换为RGB格式（确保兼容性）
-            if pil_image.mode != 'RGB':
-                pil_image = pil_image.convert('RGB')
-            
-            # 验证图片尺寸要求
-            width, height = pil_image.size
-            print(f"原始图片尺寸: {width}x{height}")
-            
-            # 检查最小尺寸要求
-            if width < 300 or height < 300:
-                print(f"警告：图片尺寸过小 ({width}x{height})，API要求最小300px")
-            
-            # 检查宽高比
-            aspect_ratio = width / height
-            if aspect_ratio < (1/2.5) or aspect_ratio > 2.5:
-                print(f"警告：图片宽高比 {aspect_ratio:.2f} 超出API要求范围 (1:2.5 ~ 2.5:1)")
-            
-            # 使用与multi_image2video相同的处理方式
-            print(f"处理图片尺寸: {width}x{height}")
-            
-            # 使用JPEG格式以减小文件大小，与multi_image2video保持一致
-            import io
-            buffered = io.BytesIO()
-            pil_image.save(buffered, format="JPEG", quality=95)
-            img_bytes = buffered.getvalue()
-            
-            # 检查图像大小是否超过10MB
-            img_size_mb = len(img_bytes) / (1024 * 1024)
-            if img_size_mb > 9.5:  # 留一点余量
-                # 缩小图像和/或降低质量
-                max_size = (1500, 1500)  # 限制最大尺寸
-                pil_image.thumbnail(max_size, Image.Resampling.LANCZOS)
-                
-                # 重新保存，降低质量
-                buffered = io.BytesIO()
-                quality = 85
-                while quality >= 60:  # 最低降到60%质量
-                    buffered.seek(0)
-                    buffered.truncate(0)
-                    pil_image.save(buffered, format="JPEG", quality=quality)
-                    img_size_mb = len(buffered.getvalue()) / (1024 * 1024)
-                    if img_size_mb <= 9.5:
-                        break
-                    quality -= 5
-                
-                print(f"图像已自动压缩: {quality}%质量, 大小: {img_size_mb:.2f}MB")
-                img_bytes = buffered.getvalue()
+            # 处理tensor格式的图像
+            if isinstance(image, torch.Tensor):
+                pil_image = self.tensor_to_pil(image)
+                if pil_image is None:
+                    return None
             else:
-                print(f"图像大小合适: {img_size_mb:.2f}MB")
+                # 原来的处理方法 (已不再使用，保留以防万一)
+                img = Image.fromarray((image[0] * 255).astype('uint8'), 'RGB')
+                pil_image = img
+                
+            # 转换为base64
+            buffered = io.BytesIO()
+            pil_image.save(buffered, format="JPEG")
+            return base64.b64encode(buffered.getvalue()).decode("utf-8")
             
-            image_bytes = img_bytes
-            size_mb = img_size_mb
-            
-            if size_mb > 10:
-                print(f"警告：图片文件大小 {size_mb:.2f}MB 仍超过API限制 (10MB)")
-            
-            # 生成Base64编码（与multi_image2video保持一致）
-            base64_string = base64.b64encode(image_bytes).decode("utf-8")
-            
-            # 简化的验证，与multi_image2video保持一致
-            print(f"成功转换图像为base64, 大小: {len(base64_string) / 1024:.2f}KB")
-            
-            return base64_string
         except Exception as e:
-            print(f"图像转换为base64失败: {str(e)}")
+            print(f"图像转换base64错误: {str(e)}")
             return None
 
     def download_and_convert_image(self, image_url, filename_prefix, output_dir, index=0):
