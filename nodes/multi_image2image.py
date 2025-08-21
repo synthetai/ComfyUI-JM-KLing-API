@@ -123,7 +123,7 @@ class KLingAIMultiImage2Image:
             
             # 验证图片尺寸要求
             width, height = pil_image.size
-            print(f"图片尺寸: {width}x{height}")
+            print(f"原始图片尺寸: {width}x{height}")
             
             # 检查最小尺寸要求
             if width < 300 or height < 300:
@@ -134,16 +134,19 @@ class KLingAIMultiImage2Image:
             if aspect_ratio < (1/2.5) or aspect_ratio > 2.5:
                 print(f"警告：图片宽高比 {aspect_ratio:.2f} 超出API要求范围 (1:2.5 ~ 2.5:1)")
             
-            # 转换为base64
+            # 直接使用原图尺寸，不进行压缩
+            print(f"保持原始图片尺寸: {width}x{height}")
+            
+            # 使用PNG格式保存以保持最高质量
             buffer = BytesIO()
             pil_image.save(buffer, format='PNG')
             image_bytes = buffer.getvalue()
-            
-            # 检查文件大小
             size_mb = len(image_bytes) / (1024 * 1024)
-            if size_mb > 10:
-                print(f"警告：图片文件大小 {size_mb:.2f}MB 超过API限制 (10MB)")
             
+            if size_mb > 10:
+                print(f"警告：图片文件大小 {size_mb:.2f}MB 仍超过API限制 (10MB)")
+            
+            # 生成Base64编码
             base64_string = base64.b64encode(image_bytes).decode('utf-8')
             
             # 验证Base64字符串格式（确保没有data:前缀）
@@ -151,14 +154,30 @@ class KLingAIMultiImage2Image:
                 print("警告：发现data:前缀，正在移除...")
                 base64_string = base64_string.split(',', 1)[1] if ',' in base64_string else base64_string
             
+            # 确保Base64字符串只包含有效字符
+            import re
+            if not re.match(r'^[A-Za-z0-9+/]*={0,2}$', base64_string):
+                print("警告：Base64字符串包含无效字符")
+                # 清理Base64字符串，只保留有效字符
+                base64_string = re.sub(r'[^A-Za-z0-9+/=]', '', base64_string)
+            
             # 验证Base64字符串是否有效
             try:
-                base64.b64decode(base64_string)
+                decoded = base64.b64decode(base64_string, validate=True)
+                print(f"Base64验证成功，解码后大小: {len(decoded)} 字节")
             except Exception as decode_e:
                 print(f"Base64验证失败: {decode_e}")
                 return None
             
-            print(f"成功转换图像为base64, 大小: {size_mb:.2f}MB, 尺寸: {width}x{height}, Base64长度: {len(base64_string)}")
+            # 最终验证：确保Base64字符串格式与可灵AI要求完全一致
+            # 检查是否包含换行符或其他空白字符
+            if '\n' in base64_string or '\r' in base64_string or ' ' in base64_string or '\t' in base64_string:
+                print("检测到Base64字符串中包含空白字符，正在清理...")
+                base64_string = base64_string.replace('\n', '').replace('\r', '').replace(' ', '').replace('\t', '')
+            
+            # 显示Base64字符串的前50个字符作为样本验证
+            print(f"Base64样本 (前50字符): {base64_string[:50]}...")
+            print(f"成功转换图像为base64, 文件大小: {size_mb:.2f}MB, 原始尺寸: {width}x{height}, Base64长度: {len(base64_string)}")
             
             return base64_string
         except Exception as e:
