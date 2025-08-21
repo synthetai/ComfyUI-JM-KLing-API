@@ -16,7 +16,7 @@ class KLingAIMultiImage2Image:
     """
     可灵AI多图参考生图节点
     
-    该节点使用可灵AI的多图参考生图API，支持2-4张图片作为主体参考，
+    该节点使用可灵AI的多图参考生图API，支持1-4张图片作为主体参考，
     可选择性地添加场景参考图和风格参考图。
     """
     
@@ -40,9 +40,9 @@ class KLingAIMultiImage2Image:
                     "placeholder": "输入图片生成描述（最多2500字符）"
                 }),
                 "subject_image1": ("IMAGE",),
-                "subject_image2": ("IMAGE",),
             },
             "optional": {
+                "subject_image2": ("IMAGE",),
                 "subject_image3": ("IMAGE",),
                 "subject_image4": ("IMAGE",),
                 "scene_image": ("IMAGE",),
@@ -188,7 +188,7 @@ class KLingAIMultiImage2Image:
             if seed == -1:
                 seed = random.randint(0, 0xffffffffffffffff)
             
-            # 准备主体图片列表，按照官方API格式，至少需要2张图片
+            # 准备主体图片列表，按照官方API格式，至少需要1张图片
             subject_image_list = []
             
             # 转换主体图片1为base64
@@ -218,8 +218,8 @@ class KLingAIMultiImage2Image:
                     subject_image_list.append({"subject_image": image4_base64})
             
             # 验证图片数量
-            if len(subject_image_list) < 2:
-                raise ValueError("至少需要提供2张主体图片")
+            if len(subject_image_list) < 1:
+                raise ValueError("至少需要提供1张主体图片")
             if len(subject_image_list) > 4:
                 raise ValueError("最多只能提供4张主体图片")
             
