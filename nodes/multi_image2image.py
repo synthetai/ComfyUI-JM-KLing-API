@@ -113,42 +113,26 @@ class KLingAIMultiImage2Image:
     def image_to_base64(self, image):
         """将ComfyUI图像转换为base64字符串（与image_generation.py保持一致）"""
         if image is None:
-            print("图像输入为None")
             return None
             
         try:
-            print(f"输入图像类型: {type(image)}")
-            if hasattr(image, 'shape'):
-                print(f"输入图像形状: {image.shape}")
-            
             # 处理tensor格式的图像
             if isinstance(image, torch.Tensor):
                 pil_image = self.tensor_to_pil(image)
                 if pil_image is None:
-                    print("tensor_to_pil返回None")
                     return None
-                print(f"PIL图像尺寸: {pil_image.size}")
-                print(f"PIL图像模式: {pil_image.mode}")
             else:
                 # 原来的处理方法 (已不再使用，保留以防万一)
                 img = Image.fromarray((image[0] * 255).astype('uint8'), 'RGB')
                 pil_image = img
-                print(f"备用方法PIL图像尺寸: {pil_image.size}")
                 
             # 转换为base64
             buffered = io.BytesIO()
             pil_image.save(buffered, format="JPEG")
-            image_bytes = buffered.getvalue()
-            print(f"JPEG图像字节大小: {len(image_bytes)}")
-            
-            base64_result = base64.b64encode(image_bytes).decode("utf-8")
-            print(f"Base64结果长度: {len(base64_result)}")
-            return base64_result
+            return base64.b64encode(buffered.getvalue()).decode("utf-8")
             
         except Exception as e:
             print(f"图像转换base64错误: {str(e)}")
-            import traceback
-            traceback.print_exc()
             return None
 
     def download_and_convert_image(self, image_url, filename_prefix, output_dir, index=0):
@@ -209,8 +193,6 @@ class KLingAIMultiImage2Image:
             # 转换主体图片1为base64
             if subject_image1 is not None:
                 image1_base64 = self.image_to_base64(subject_image1)
-                print(f"主体图片1 Base64转换结果长度: {len(image1_base64) if image1_base64 else 0}")
-                print(f"主体图片1 Base64前50字符: {image1_base64[:50] if image1_base64 else 'None'}")
                 if not image1_base64:
                     raise ValueError("主体图片1转换为base64失败")
                 subject_image_list.append({"subject_image": image1_base64})
@@ -263,8 +245,6 @@ class KLingAIMultiImage2Image:
             # 处理场景参考图
             if scene_image is not None:
                 scene_base64 = self.image_to_base64(scene_image)
-                print(f"场景图片 Base64转换结果长度: {len(scene_base64) if scene_base64 else 0}")
-                print(f"场景图片 Base64前50字符: {scene_base64[:50] if scene_base64 else 'None'}")
                 if scene_base64:
                     payload["scene_image"] = scene_base64  # 使用正确的scene_image参数名
                     print("添加了场景参考图")
@@ -298,12 +278,14 @@ class KLingAIMultiImage2Image:
             
             print(f"请求参数 (隐藏base64): {json.dumps(debug_payload, indent=2, ensure_ascii=False)}")
             
-            # 调试：检查Base64字符串是否有问题
+            # 调试：检查Base64字符串是否有问题（使用原始payload）
+            print("=== Base64验证 ===")
             for i, img_item in enumerate(payload.get("subject_image_list", [])):
                 base64_str = img_item.get("subject_image", "")
                 if base64_str:
-                    # 检查Base64字符串的结尾
-                    print(f"主体图片{i+1} Base64结尾 (最后50字符): ...{base64_str[-50:]}")
+                    print(f"主体图片{i+1} Base64长度: {len(base64_str)}")
+                    print(f"主体图片{i+1} Base64开头: {base64_str[:50]}")
+                    print(f"主体图片{i+1} Base64结尾: ...{base64_str[-50:]}")
                     # 检查是否包含无效字符
                     import re
                     invalid_chars = re.findall(r'[^A-Za-z0-9+/=]', base64_str)
@@ -314,7 +296,9 @@ class KLingAIMultiImage2Image:
             
             if "scene_image" in payload:
                 scene_base64 = payload["scene_image"]
-                print(f"场景图片 Base64结尾 (最后50字符): ...{scene_base64[-50:]}")
+                print(f"场景图片 Base64长度: {len(scene_base64)}")
+                print(f"场景图片 Base64开头: {scene_base64[:50]}")
+                print(f"场景图片 Base64结尾: ...{scene_base64[-50:]}")
                 invalid_chars = re.findall(r'[^A-Za-z0-9+/=]', scene_base64)
                 if invalid_chars:
                     print(f"场景图片 Base64包含无效字符: {set(invalid_chars)}")
