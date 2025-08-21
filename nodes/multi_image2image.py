@@ -165,6 +165,14 @@ class KLingAIMultiImage2Image:
             try:
                 decoded = base64.b64decode(base64_string, validate=True)
                 print(f"Base64验证成功，解码后大小: {len(decoded)} 字节")
+                
+                # 额外验证：尝试将解码后的数据重新编码
+                re_encoded = base64.b64encode(decoded).decode('utf-8')
+                if re_encoded == base64_string:
+                    print("Base64双向验证成功")
+                else:
+                    print("警告：Base64双向验证失败")
+                    
             except Exception as decode_e:
                 print(f"Base64验证失败: {decode_e}")
                 return None
@@ -177,7 +185,13 @@ class KLingAIMultiImage2Image:
             
             # 显示Base64字符串的前50个字符作为样本验证
             print(f"Base64样本 (前50字符): {base64_string[:50]}...")
+            print(f"Base64样本 (后50字符): ...{base64_string[-50:]}")
             print(f"成功转换图像为base64, 文件大小: {size_mb:.2f}MB, 原始尺寸: {width}x{height}, Base64长度: {len(base64_string)}")
+            
+            # 如果文件很大，给出警告
+            if len(base64_string) > 4000000:  # 4M字符
+                print(f"警告：Base64字符串非常长 ({len(base64_string)} 字符)，这可能导致API请求失败")
+                print("建议：考虑压缩图片或使用较小的图片")
             
             return base64_string
         except Exception as e:
@@ -326,6 +340,29 @@ class KLingAIMultiImage2Image:
                 debug_payload["style_image"] = "[BASE64_STYLE_IMAGE]"
             
             print(f"请求参数 (隐藏base64): {json.dumps(debug_payload, indent=2, ensure_ascii=False)}")
+            
+            # 调试：检查Base64字符串是否有问题
+            for i, img_item in enumerate(payload.get("subject_image_list", [])):
+                base64_str = img_item.get("subject_image", "")
+                if base64_str:
+                    # 检查Base64字符串的结尾
+                    print(f"主体图片{i+1} Base64结尾 (最后50字符): ...{base64_str[-50:]}")
+                    # 检查是否包含无效字符
+                    import re
+                    invalid_chars = re.findall(r'[^A-Za-z0-9+/=]', base64_str)
+                    if invalid_chars:
+                        print(f"主体图片{i+1} Base64包含无效字符: {set(invalid_chars)}")
+                    else:
+                        print(f"主体图片{i+1} Base64格式验证通过")
+            
+            if "scene_image" in payload:
+                scene_base64 = payload["scene_image"]
+                print(f"场景图片 Base64结尾 (最后50字符): ...{scene_base64[-50:]}")
+                invalid_chars = re.findall(r'[^A-Za-z0-9+/=]', scene_base64)
+                if invalid_chars:
+                    print(f"场景图片 Base64包含无效字符: {set(invalid_chars)}")
+                else:
+                    print(f"场景图片 Base64格式验证通过")
             
             response = requests.post(url, headers=headers, json=payload, timeout=60)
             
