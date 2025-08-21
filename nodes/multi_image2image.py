@@ -121,15 +121,44 @@ class KLingAIMultiImage2Image:
             if pil_image.mode != 'RGB':
                 pil_image = pil_image.convert('RGB')
             
+            # 验证图片尺寸要求
+            width, height = pil_image.size
+            print(f"图片尺寸: {width}x{height}")
+            
+            # 检查最小尺寸要求
+            if width < 300 or height < 300:
+                print(f"警告：图片尺寸过小 ({width}x{height})，API要求最小300px")
+            
+            # 检查宽高比
+            aspect_ratio = width / height
+            if aspect_ratio < (1/2.5) or aspect_ratio > 2.5:
+                print(f"警告：图片宽高比 {aspect_ratio:.2f} 超出API要求范围 (1:2.5 ~ 2.5:1)")
+            
             # 转换为base64
             buffer = BytesIO()
             pil_image.save(buffer, format='PNG')
             image_bytes = buffer.getvalue()
+            
+            # 检查文件大小
+            size_mb = len(image_bytes) / (1024 * 1024)
+            if size_mb > 10:
+                print(f"警告：图片文件大小 {size_mb:.2f}MB 超过API限制 (10MB)")
+            
             base64_string = base64.b64encode(image_bytes).decode('utf-8')
             
-            # 计算图片大小（MB）
-            size_mb = len(image_bytes) / (1024 * 1024)
-            print(f"成功转换图像为base64, 大小: {size_mb:.2f}MB")
+            # 验证Base64字符串格式（确保没有data:前缀）
+            if base64_string.startswith('data:'):
+                print("警告：发现data:前缀，正在移除...")
+                base64_string = base64_string.split(',', 1)[1] if ',' in base64_string else base64_string
+            
+            # 验证Base64字符串是否有效
+            try:
+                base64.b64decode(base64_string)
+            except Exception as decode_e:
+                print(f"Base64验证失败: {decode_e}")
+                return None
+            
+            print(f"成功转换图像为base64, 大小: {size_mb:.2f}MB, 尺寸: {width}x{height}, Base64长度: {len(base64_string)}")
             
             return base64_string
         except Exception as e:
@@ -247,7 +276,7 @@ class KLingAIMultiImage2Image:
             if scene_image is not None:
                 scene_base64 = self.image_to_base64(scene_image)
                 if scene_base64:
-                    payload["scence_image"] = scene_base64  # 注意API文档中是"scence_image"而不是"scene_image"
+                    payload["scene_image"] = scene_base64  # 使用正确的scene_image参数名
                     print("添加了场景参考图")
             
             # 处理风格参考图
@@ -267,6 +296,18 @@ class KLingAIMultiImage2Image:
             print(f"正在发送请求到: {url}")
             print(f"使用本地种子: {seed} (仅用于本地，未发送给API)")
             
+            # 调试：打印请求的详细信息（隐藏base64数据）
+            debug_payload = payload.copy()
+            for i, img_item in enumerate(debug_payload.get("subject_image_list", [])):
+                if "subject_image" in img_item:
+                    debug_payload["subject_image_list"][i]["subject_image"] = f"[BASE64_IMAGE_{i+1}]"
+            if "scene_image" in debug_payload:
+                debug_payload["scene_image"] = "[BASE64_SCENE_IMAGE]"
+            if "style_image" in debug_payload:
+                debug_payload["style_image"] = "[BASE64_STYLE_IMAGE]"
+            
+            print(f"请求参数 (隐藏base64): {json.dumps(debug_payload, indent=2, ensure_ascii=False)}")
+            
             response = requests.post(url, headers=headers, json=payload, timeout=60)
             
             print(f"响应状态码: {response.status_code}")
@@ -284,21 +325,33 @@ class KLingAIMultiImage2Image:
                 else:
                     error_msg = f"创建多图参考生图任务失败: {result.get('message', '未知错误')}"
                     print(error_msg)
-                    return ([], [], error_msg, output_dir or folder_paths.get_output_directory())
+                    # 返回空的张量和URL，而不是空列表
+                    empty_tensor = torch.zeros((1, 64, 64, 3), dtype=torch.float32)
+                    return ([empty_tensor], [""], error_msg, output_dir or folder_paths.get_output_directory())
             else:
                 try:
                     error_data = response.json()
-                    error_msg = f"API请求失败 (错误码: {error_data.get('code', 'unknown')}): {error_data.get('message', '未知错误')} (请求ID: {error_data.get('request_id', 'unknown')})"
+                    print(f"API错误详情: {json.dumps(error_data, indent=2, ensure_ascii=False)}")
+                    
+                    # 提供更详细的错误信息
+                    if error_data.get('message') == 'The input parameters are not correct':
+                        error_msg = f"API参数错误: 输入参数不正确。请检查:\n1. 图片格式是否为JPG/JPEG/PNG\n2. 图片尺寸是否>=300px\n3. 图片大小是否<=10MB\n4. 图片宽高比是否在1:2.5~2.5:1范围内\n详细错误: {error_data.get('message', '未知错误')}"
+                    else:
+                        error_msg = f"API请求失败 (错误码: {error_data.get('code', 'unknown')}): {error_data.get('message', '未知错误')} (请求ID: {error_data.get('request_id', 'unknown')})"
                 except:
-                    error_msg = f"API请求失败，状态码: {response.status_code}"
+                    error_msg = f"API请求失败，状态码: {response.status_code}, 响应内容: {response.text[:500]}"
                 
                 print(f"创建多图参考生图任务错误: {error_msg}")
-                return ([], [], error_msg, output_dir or folder_paths.get_output_directory())
+                # 返回空的张量和URL，而不是空列表
+                empty_tensor = torch.zeros((1, 64, 64, 3), dtype=torch.float32)
+                return ([empty_tensor], [""], error_msg, output_dir or folder_paths.get_output_directory())
                 
         except Exception as e:
             error_msg = f"创建多图参考生图任务异常: {str(e)}"
             print(error_msg)
-            return ([], [], error_msg, output_dir or folder_paths.get_output_directory())
+            # 返回空的张量和URL，而不是空列表
+            empty_tensor = torch.zeros((1, 64, 64, 3), dtype=torch.float32)
+            return ([empty_tensor], [""], error_msg, output_dir or folder_paths.get_output_directory())
 
     def wait_and_get_result(self, api_token, task_id, filename_prefix, output_dir, max_wait_time=600, poll_interval=10):
         """等待任务完成并获取结果"""
@@ -361,16 +414,22 @@ class KLingAIMultiImage2Image:
                                 else:
                                     error_msg = "图片下载失败"
                                     print(error_msg)
-                                    return ([], [], error_msg, output_dir or folder_paths.get_output_directory())
+                                    # 返回空的张量和URL，而不是空列表
+                                    empty_tensor = torch.zeros((1, 64, 64, 3), dtype=torch.float32)
+                                    return ([empty_tensor], [""], error_msg, output_dir or folder_paths.get_output_directory())
                             else:
                                 error_msg = "任务完成但未返回图片"
                                 print(error_msg)
-                                return ([], [], error_msg, output_dir or folder_paths.get_output_directory())
+                                # 返回空的张量和URL，而不是空列表
+                                empty_tensor = torch.zeros((1, 64, 64, 3), dtype=torch.float32)
+                                return ([empty_tensor], [""], error_msg, output_dir or folder_paths.get_output_directory())
                         
                         elif task_status == "failed":
                             error_msg = f"任务失败: {data.get('task_status_msg', '未知原因')}"
                             print(error_msg)
-                            return ([], [], error_msg, output_dir or folder_paths.get_output_directory())
+                            # 返回空的张量和URL，而不是空列表
+                            empty_tensor = torch.zeros((1, 64, 64, 3), dtype=torch.float32)
+                            return ([empty_tensor], [""], error_msg, output_dir or folder_paths.get_output_directory())
                         
                         elif task_status in ["submitted", "processing"]:
                             # 任务还在处理中，继续等待
@@ -395,4 +454,6 @@ class KLingAIMultiImage2Image:
         # 超时
         error_msg = f"任务查询超时 ({max_wait_time}秒)"
         print(error_msg)
-        return ([], [], error_msg, output_dir or folder_paths.get_output_directory())
+        # 返回空的张量和URL，而不是空列表
+        empty_tensor = torch.zeros((1, 64, 64, 3), dtype=torch.float32)
+        return ([empty_tensor], [""], error_msg, output_dir or folder_paths.get_output_directory())
