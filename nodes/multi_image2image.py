@@ -134,64 +134,50 @@ class KLingAIMultiImage2Image:
             if aspect_ratio < (1/2.5) or aspect_ratio > 2.5:
                 print(f"警告：图片宽高比 {aspect_ratio:.2f} 超出API要求范围 (1:2.5 ~ 2.5:1)")
             
-            # 直接使用原图尺寸，不进行压缩
-            print(f"保持原始图片尺寸: {width}x{height}")
+            # 使用与multi_image2video相同的处理方式
+            print(f"处理图片尺寸: {width}x{height}")
             
-            # 使用PNG格式保存以保持最高质量
-            buffer = BytesIO()
-            pil_image.save(buffer, format='PNG')
-            image_bytes = buffer.getvalue()
-            size_mb = len(image_bytes) / (1024 * 1024)
+            # 使用JPEG格式以减小文件大小，与multi_image2video保持一致
+            import io
+            buffered = io.BytesIO()
+            pil_image.save(buffered, format="JPEG", quality=95)
+            img_bytes = buffered.getvalue()
+            
+            # 检查图像大小是否超过10MB
+            img_size_mb = len(img_bytes) / (1024 * 1024)
+            if img_size_mb > 9.5:  # 留一点余量
+                # 缩小图像和/或降低质量
+                max_size = (1500, 1500)  # 限制最大尺寸
+                pil_image.thumbnail(max_size, Image.Resampling.LANCZOS)
+                
+                # 重新保存，降低质量
+                buffered = io.BytesIO()
+                quality = 85
+                while quality >= 60:  # 最低降到60%质量
+                    buffered.seek(0)
+                    buffered.truncate(0)
+                    pil_image.save(buffered, format="JPEG", quality=quality)
+                    img_size_mb = len(buffered.getvalue()) / (1024 * 1024)
+                    if img_size_mb <= 9.5:
+                        break
+                    quality -= 5
+                
+                print(f"图像已自动压缩: {quality}%质量, 大小: {img_size_mb:.2f}MB")
+                img_bytes = buffered.getvalue()
+            else:
+                print(f"图像大小合适: {img_size_mb:.2f}MB")
+            
+            image_bytes = img_bytes
+            size_mb = img_size_mb
             
             if size_mb > 10:
                 print(f"警告：图片文件大小 {size_mb:.2f}MB 仍超过API限制 (10MB)")
             
-            # 生成Base64编码
-            base64_string = base64.b64encode(image_bytes).decode('utf-8')
+            # 生成Base64编码（与multi_image2video保持一致）
+            base64_string = base64.b64encode(image_bytes).decode("utf-8")
             
-            # 验证Base64字符串格式（确保没有data:前缀）
-            if base64_string.startswith('data:'):
-                print("警告：发现data:前缀，正在移除...")
-                base64_string = base64_string.split(',', 1)[1] if ',' in base64_string else base64_string
-            
-            # 确保Base64字符串只包含有效字符
-            import re
-            if not re.match(r'^[A-Za-z0-9+/]*={0,2}$', base64_string):
-                print("警告：Base64字符串包含无效字符")
-                # 清理Base64字符串，只保留有效字符
-                base64_string = re.sub(r'[^A-Za-z0-9+/=]', '', base64_string)
-            
-            # 验证Base64字符串是否有效
-            try:
-                decoded = base64.b64decode(base64_string, validate=True)
-                print(f"Base64验证成功，解码后大小: {len(decoded)} 字节")
-                
-                # 额外验证：尝试将解码后的数据重新编码
-                re_encoded = base64.b64encode(decoded).decode('utf-8')
-                if re_encoded == base64_string:
-                    print("Base64双向验证成功")
-                else:
-                    print("警告：Base64双向验证失败")
-                    
-            except Exception as decode_e:
-                print(f"Base64验证失败: {decode_e}")
-                return None
-            
-            # 最终验证：确保Base64字符串格式与可灵AI要求完全一致
-            # 检查是否包含换行符或其他空白字符
-            if '\n' in base64_string or '\r' in base64_string or ' ' in base64_string or '\t' in base64_string:
-                print("检测到Base64字符串中包含空白字符，正在清理...")
-                base64_string = base64_string.replace('\n', '').replace('\r', '').replace(' ', '').replace('\t', '')
-            
-            # 显示Base64字符串的前50个字符作为样本验证
-            print(f"Base64样本 (前50字符): {base64_string[:50]}...")
-            print(f"Base64样本 (后50字符): ...{base64_string[-50:]}")
-            print(f"成功转换图像为base64, 文件大小: {size_mb:.2f}MB, 原始尺寸: {width}x{height}, Base64长度: {len(base64_string)}")
-            
-            # 如果文件很大，给出警告
-            if len(base64_string) > 4000000:  # 4M字符
-                print(f"警告：Base64字符串非常长 ({len(base64_string)} 字符)，这可能导致API请求失败")
-                print("建议：考虑压缩图片或使用较小的图片")
+            # 简化的验证，与multi_image2video保持一致
+            print(f"成功转换图像为base64, 大小: {len(base64_string) / 1024:.2f}KB")
             
             return base64_string
         except Exception as e:
